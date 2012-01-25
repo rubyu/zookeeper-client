@@ -37,6 +37,7 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
       }
     }))
     latch.await()
+    log.info("connected")
   }
 
   def node(args: String*) = {
@@ -137,17 +138,21 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   def create(data: Array[Byte] = null, ephemeral: Boolean = false) {
-    val mode = ephemeral match {
-      case true => CreateMode.EPHEMERAL
-      case _ => CreateMode.PERSISTENT
+    val mode = {
+      if (ephemeral)
+        CreateMode.EPHEMERAL
+      else
+        CreateMode.PERSISTENT
     }
     zk.create(path, data, Ids.OPEN_ACL_UNSAFE, mode)
   }
 
   def createSequential(data: Array[Byte] = null, ephemeral: Boolean = false): ZooKeeperNode = {
-    val mode = ephemeral match {
-      case true => CreateMode.EPHEMERAL_SEQUENTIAL
-      case _ => CreateMode.PERSISTENT_SEQUENTIAL
+    val mode = {
+      if (ephemeral)
+        CreateMode.EPHEMERAL_SEQUENTIAL
+      else
+        CreateMode.PERSISTENT_SEQUENTIAL
     }
     zc.node(zk.create(path, data, Ids.OPEN_ACL_UNSAFE, mode))
   }
@@ -181,11 +186,14 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
 
   def children: List[ZooKeeperNode] = {
     val buf = new ListBuffer[ZooKeeperNode]
-    zk.getChildren(path, false) foreach { s =>
-      buf += zc.node(path, s)
-    }
+    zk.getChildren(path, false) foreach { buf += zc.node(path, _) }
     buf.toList
   }
+
+  /**
+   * TODO children(sort=true)
+   * 末尾でソート、全てがsequentialでなければエラー
+   */
 
   class GetDataResponse(val stat: Stat, val data: Array[Byte])
   
