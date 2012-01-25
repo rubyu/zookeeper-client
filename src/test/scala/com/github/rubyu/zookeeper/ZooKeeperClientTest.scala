@@ -30,31 +30,54 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
 
   "ZooKeeperNode" should {   
 
-    "create recursive the node" in {
+    "create a node recursively" in {
       root_foo_bar.createRecursive()
       root_foo_bar.exists must_== true
+
     }
 
-    "create the node" in {
+    //TODO 普通のノードも sequentialId, isEphemeralあたりのチェック
+
+    "create a persistent node" in {
       val node = zc.node(root, "node")
       node.create()
       node.exists must_== true
+      node.isEphemeral must_== false
     }
 
-    "create the ephemeral node" in {
+    "create an ephemeral node" in {
       val node = zc.node(root, "ephemeral")
-      node.create(mode=CreateMode.EPHEMERAL)
+      node.create(ephemeral = true)
       node.exists must_== true
+      node.isEphemeral must_== true
     }
 
-    "create the node with specific data" in {
+    "create a persistent-sequential node" in {
+      val node = zc.node(root, "seq-")
+      val seq = node.createSequential()
+      node.exists must_== false
+      seq.exists must_== true
+      seq.parent.get must_== root
+      seq.sequentialId.get must_== "0000000000"
+      seq.isEphemeral must_== false
+    }
+
+    "create an ephemeral-sequential node" in {
+      val node = zc.node(root, "seq-")
+      val seq = node.createSequential(ephemeral = true)
+      node.exists must_== false
+      seq.exists must_== true
+      seq.parent.get must_== root
+      seq.sequentialId.get must_== "0000000000"
+      seq.isEphemeral must_== true
+    }
+    
+    "create the node with specified data" in {
       val data = "test".getBytes
       val node = zc.node(root, "node")
       node.create(data)
       node.get.data must_== data
     }
-
-    //sequence
     
     "delete the node if given version is equal to it's version" in {
       val node = zc.node(root, "node")
@@ -64,6 +87,13 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
       node.exists must_== false
     }
     
+    "return children" in {
+      val a = zc.node(root, "a")
+      val b = zc.node(root, "b")
+      a.create()
+      b.create()
+      root.children.toSet must_== Set(a, b)
+    }
     
     "return the name" in {
       root.name must_== "zookeeper-client-test"
@@ -90,7 +120,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
       node.get.data must_== data
     }
 
-    "set the data for the node if given version is equal to it's version" in {
+    "set the data for a node if given version is equal to it's version" in {
       val data = "test".getBytes
       val node = zc.node(root, "node")
       node.create()
@@ -98,8 +128,6 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
       node.setIf(data, version=0)
       node.get.data must_== data
     }
-    
-    //"retrun a Stat" in {}
 
     /*
 
@@ -119,60 +147,11 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
     }))
   }
 
-  def create(data: Array[Byte], acl: java.util.List[ACL], createMode: CreateMode): String = {
-    zk.create(path, data, acl, createMode)
-  }
-
-  def createRecursive() {
-    val nodes = new ListBuffer[ZooKeeperNode]
-    var node = this
-    do {
-      node +=: nodes
-      node = node.parent.get
-    } while (!node.isRootNode)
-    nodes foreach { node =>
-      try {
-        log.debug("creating %s".format(node))
-        node.create(null, Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT)
-      } catch {
-        case e: KeeperException.NodeExistsException => {}
-      }
-    }
-  }
-
   def stat = Option(zk.exists(path, false))
-
-  def children: List[ZooKeeperNode] = {
-    val buf = new ListBuffer[ZooKeeperNode]
-    zk.getChildren(path, false) foreach { s =>
-      buf += zc.node(path, s)
-    }
-    buf.toList
-  }
-
-  class GetResponse(val stat: Stat, val data: Array[Byte])
-  
-  def get: GetResponse = {
-    val stat = new Stat()
-    val data = zk.getData(path, false, stat)
-    new GetResponse(stat, data)
-  }
-  
-  def set(data: Array[Byte]) = setIf(data, -1)
-  
-  def setIf(data: Array[Byte], version: Int) {
-    zk.setData(path, data, version)
-  }
-  
-  def delete() = deleteIf(-1)
-  
-  def deleteIf(version: Int) {
-    zk.delete(path, version)
-  }
 
      */
 
-    "deleteRecursive a node" in {
+    "delete the node recursively" in {
       root_foo_bar.createRecursive()
       root_foo_bar.exists must_== true
       root.deleteRecursive()

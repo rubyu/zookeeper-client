@@ -136,11 +136,20 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     }))
   }
 
-  /**
-   * TODO test sequential
-   */
-  def create(data: Array[Byte] = null, mode: CreateMode = CreateMode.PERSISTENT): String = {
+  def create(data: Array[Byte] = null, ephemeral: Boolean = false) {
+    val mode = ephemeral match {
+      case true => CreateMode.EPHEMERAL
+      case _ => CreateMode.PERSISTENT
+    }
     zk.create(path, data, Ids.OPEN_ACL_UNSAFE, mode)
+  }
+
+  def createSequential(data: Array[Byte] = null, ephemeral: Boolean = false): ZooKeeperNode = {
+    val mode = ephemeral match {
+      case true => CreateMode.EPHEMERAL_SEQUENTIAL
+      case _ => CreateMode.PERSISTENT_SEQUENTIAL
+    }
+    zc.node(zk.create(path, data, Ids.OPEN_ACL_UNSAFE, mode))
   }
 
   def createRecursive() {
@@ -157,6 +166,16 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   def stat = Option(zk.exists(path, false))
+
+  def isEphemeral = exists && stat.get.getEphemeralOwner != 0
+
+  def sequentialId = {
+    val id = path.takeRight(10)
+    if (id matches  "^\\d+$")
+      Some(id)
+    else
+      None
+  }
 
   def exists = stat.isDefined
 
