@@ -17,40 +17,59 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
   val root_foo_bar = zc.node(root, "foo", "bar")
 
   def before {
+    log.info("--test--")
     root.createRecursive()
+
   }
 
   def after {
     if (root.exists)
       root.deleteRecursive()
+    log.info("--------")
   }
 
   "ZooKeeperNode" should {   
 
-    "create recursive a node" in {
+    "create recursive the node" in {
       root_foo_bar.createRecursive()
       root_foo_bar.exists must_== true
     }
 
-    "create a node" in {
+    "create the node" in {
       val node = zc.node(root, "node")
       node.create()
       node.exists must_== true
     }
 
-    "create a ephemeral node" in {
+    "create the ephemeral node" in {
       val node = zc.node(root, "ephemeral")
       node.create(mode=CreateMode.EPHEMERAL)
       node.exists must_== true
     }
 
+    "create the node with specific data" in {
+      val data = "test".getBytes
+      val node = zc.node(root, "node")
+      node.create(data)
+      node.get.data must_== data
+    }
+
     //sequence
+    
+    "delete the node if given version is equal to it's version" in {
+      val node = zc.node(root, "node")
+      node.create()
+      node.deleteIf(version=1) must throwA[KeeperException.BadVersionException]
+      node.deleteIf(version=0)
+      node.exists must_== false
+    }
+    
     
     "return the name" in {
       root.name must_== "zookeeper-client-test"
       root_foo.name must_== "foo"
       root_foo_bar.name must_== "bar"
-      zc.node("/").name must_== "/"
+      zc.node("/").name must_== ""
     }
 
     "return the parent, the parent ... until the root" in {
@@ -63,6 +82,23 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
       node.parent must_== None
     }
 
+    "set and get the data" in {
+      val data = "test".getBytes
+      val node = zc.node(root, "node")
+      node.create()
+      node.set(data)
+      node.get.data must_== data
+    }
+
+    "set the data for the node if given version is equal to it's version" in {
+      val data = "test".getBytes
+      val node = zc.node(root, "node")
+      node.create()
+      node.setIf(data, version=1) must throwA[KeeperException.BadVersionException]
+      node.setIf(data, version=0)
+      node.get.data must_== data
+    }
+    
     //"retrun a Stat" in {}
 
     /*

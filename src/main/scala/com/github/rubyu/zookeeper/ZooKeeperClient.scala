@@ -9,27 +9,18 @@ import collection.mutable.ListBuffer
 import collection.JavaConversions._
 import java.util.concurrent.CountDownLatch
 
-/**
- *
- */
+
 class CallbackWatcher(callback: WatchedEvent => Unit) extends Watcher {
   private val log = Logger.getLogger(this.getClass.getName)
 
   override def process(event: WatchedEvent): Unit = {
-    log.debug("event: class=%s, path=%s, state=%s, type=%s",
-      getClass.getName, event.getPath, event.getState, event.getType)
+    log.debug("event: class=%s, path=%s, state=%s, type=%s".format(
+      getClass.getName, event.getPath, event.getState, event.getType))
     callback(event)
-    log.debug("callback applied")
   }
 }
 
-/**
- * volatile zk
- * handle
- * node(path, to, node)
- * private connect
- *
- */
+
 class ZooKeeperClient(connectString: String, timeout: Int) {
   private val log = Logger.getLogger(this.getClass.getName)
 
@@ -39,13 +30,9 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
   
   private def connect() {
     val latch = new CountDownLatch(1)
-    zk = new ZooKeeper(connectString, timeout, new CallbackWatcher({
-      event =>
+    zk = new ZooKeeper(connectString, timeout, new CallbackWatcher({ event =>
       event.getState match {
-        case KeeperState.SyncConnected =>
-          latch.countDown()
-        case KeeperState.Expired =>
-          connect()
+        case KeeperState.SyncConnected => latch.countDown()
         case _ => {}
       }
     }))
@@ -62,6 +49,8 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
     new ZooKeeperNode(this, path)
   }
 
+  //TODO equals を handleのgetSessionIdで判定？
+
   def handle: ZooKeeper = zk
 
   def close() = zk.close()
@@ -70,50 +59,61 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
 }
 
 /**
- * -private zc
- * -private zk = zc.handle
- * -path
- * -parent
- * -name
- * -watch(permanently=) {}
- * -WatchChildren(permanently=) {}
- * -exists
- * -create
- * -createRecursively
- * -stat
- * -children
- * -get
- * -update/updateIf(version=)
- * -delete/deleteIf(version=)
- * -deleteRecursively
  *
  */
+
 class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   private val log = Logger.getLogger(this.getClass.getName)
 
   private def zk: ZooKeeper = zc.handle
 
-  def isRootNode = path == "/"
+  def isRoot = path == "/"
 
   def name = {
-    if (isRootNode)
-      path
+    if (isRoot)
+      ""
     else
       path.split("/").last
   }
   
   def parent = {
-    val arr = path.split("/").drop(1)
-    arr.length match {
+    val names = path.split("/").drop(1)
+    names.length match {
       case n if n == 0 => 
         None
       case n if n == 1 => 
         Some(zc.node("/"))
       case n if n >= 2 =>
-        Some(zc.node(arr.dropRight(1): _*))
+        Some(zc.node(names.dropRight(1): _*))
     }
   }
 
+  /**
+   * TODO test
+   * TODO ノードが存在しない場合のWatcherの設定の有無が曖昧。
+   * existsのときは、ノードがなくてもWatcherは設定され、create/delete/updateのいずれでもcallbackが返る。
+   * getDataのとき、ノードが無ければWatcherは設定されない。delete/updateでcallbackが返る。
+   *
+   * 無条件でWatcherを設定 watch
+   * ノードが存在すれば設定 watch
+   *
+   * TODO watch(permanent=true) {} はできる？
+   * watch(permanent=false)(callback ...)にする必要あり？
+   * できるなら
+   * watch(ifExist=true)
+   *
+   * permanentでNoNodeになった際はどういう扱い？ 例外か？
+   *  allowNoNodeで制御？
+   *
+   * TODO watch(allowNoNode=false, permanent=true) {event => }
+   *
+   * あるいは、永続をここで制御しない？
+   *
+   * TODO 設定されたか否かを返す
+   *
+   * TODO () => Unitとかも？
+   *
+   */
   def watch(callback: WatchedEvent => Unit, permanent: Boolean = false) {
     log.debug("set watch to node; path=%s, permanent=%s".format(path, permanent))
     zk.exists(path, new CallbackWatcher({ event =>
@@ -122,22 +122,32 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     }))
   }
 
+  /**
+   *ノードが無ければWatcherは設定されない。ノードのdelete、子のcreate/deleteがcallbackされる。
+   *
+   * TODO test
+   * TODO 設定されたか否かを返す
+   */
   def watchChildren(callback: WatchedEvent => Unit, permanent: Boolean = false) {
     log.debug("set watch to node's children; path=%s, permanent=%s".format(path, permanent))
     zk.getChildren(path, new CallbackWatcher({ event =>
       callback(event)
-      if (permanent) watch(callback, permanent)
+      if (permanent) watchChildren(callback, permanent)
     }))
   }
 
-  def create(data: Array[Byte] = null,
-             mode: CreateMode = CreateMode.PERSISTENT): String = {
+  /**
+   * TODO test sequential
+   */
+  def create(data: Array[Byte] = null, mode: CreateMode = CreateMode.PERSISTENT): String = {
     zk.create(path, data, Ids.OPEN_ACL_UNSAFE, mode)
   }
 
   def createRecursive() {
-    if (parent.isDefined && !parent.get.isRootNode)
-      parent.get.createRecursive()
+    parent match {
+      case Some(node) if !node.isRoot => node.createRecursive()
+      case _ => {}
+    }
     log.debug("create recursive; path=%s".format(path))
     try {
       create()
@@ -158,22 +168,22 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     buf.toList
   }
 
-  class GetResponse(val stat: Stat, val data: Array[Byte])
+  class GetDataResponse(val stat: Stat, val data: Array[Byte])
   
-  def get: GetResponse = {
+  def get: GetDataResponse = {
     val stat = new Stat()
     val data = zk.getData(path, false, stat)
-    new GetResponse(stat, data)
+    new GetDataResponse(stat, data)
   }
   
   def set(data: Array[Byte]) = setIf(data, -1)
-  
+
   def setIf(data: Array[Byte], version: Int) {
     zk.setData(path, data, version)
   }
   
   def delete() = deleteIf(-1)
-  
+
   def deleteIf(version: Int) {
     zk.delete(path, version)
   }
