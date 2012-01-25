@@ -170,7 +170,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   def isEphemeral = exists && stat.get.getEphemeralOwner != 0
 
   def sequentialId = {
-    val id = path.takeRight(10)
+    val id = name.takeRight(10)
     if (id matches  "^\\d+$")
       Some(id)
     else
