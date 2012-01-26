@@ -22,6 +22,12 @@ it would not check node's existence and would not check even correctness of it's
 As the *ZooKeeperNode* is just a wrapper of path string.
 
 
+##Please teach me English!
+
+I'm writing comments, README and others, as part of the English lesson.
+Please laugh and point out my mistakes!
+
+
 ##USAGE
 ###Setup
 
@@ -134,11 +140,6 @@ permanent watcher:
     test.exists
     >> false
 
-
-##Please teach me English!
-
-I'm writing comments, README and others, as part of the English lesson.
-Please laugh and point out my mistakes!
 
 
 
