@@ -1,14 +1,14 @@
 #Simple ZooKeeper client for Scala.
 
 This library provides two important classes *ZooKeeperClient* for managing
-a ZooKeeper instance and *ZooKeeperNode* for managing a node.
+a ZooKeeper instance and *ZooKeeperNode* for managing a node in ZooKeeper.
 Almost all function implemented in *ZooKeeperNode*, because most
-ZooKeeper's functions are relating to a node.
+ZooKeeper's functions are relating to the node.
 
 
 ##ZooKeeperClient
 The *ZooKeeperClient* **does not treat** the ZooKeeper's session expire,
-you should manage it in your code. See below:
+and so you should manage it in your code. See below:
 
 > Library writers should be conscious of the severity of the expired state
 and not try to recover from it. Instead libraries should return a fatal error.
@@ -19,7 +19,7 @@ and not try to recover from it. Instead libraries should return a fatal error.
 When a *ZooKeeperNode* created, existence of it's node does not guaranteed.
 If you create a *ZooKeeperNode* for a path,
 it would not check node's existence and would not check even correctness of it's path.
-As the *ZooKeeperNode* is just a wrapper of node's path.
+As the *ZooKeeperNode* is just a wrapper of path string.
 
 
 
@@ -133,7 +133,7 @@ permanent watcher:
 
     root.deleteRecursive()
     root.exists
-    >>false
+    >> false
     
     
     
