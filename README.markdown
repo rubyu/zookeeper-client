@@ -1,4 +1,4 @@
-#Simple wrapper for ZooKeeper.
+#Simple ZooKeeper client for Scala.
 
 ##USAGE
 ###Setup
@@ -79,7 +79,7 @@ permanent watcher:
     val d = a.createChild("d")
     >> called
     val e = a.createChild("e")
-     // no output
+    // no output
     
 permanent watcher:
 
