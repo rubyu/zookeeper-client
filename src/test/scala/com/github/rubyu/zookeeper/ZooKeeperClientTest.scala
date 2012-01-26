@@ -27,46 +27,63 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
   }
 
   "ZooKeeperNode" should {
+    "createRecursive" in {
+      root_foo.exists must_== false
+      root_foo_bar.createRecursive()
+      root_foo_bar.exists must_== true
+    }
     "create" in {
-      "a node recursively" in {
-        root_foo_bar.createRecursive()
-        root_foo_bar.exists must_== true
-
-      }
       "a persistent node" in {
         val node = zc.node(root, "node")
         node.create()
+        node.parent.get must_== root
         node.exists must_== true
         node.isEphemeral must_== false
       }
-      "an ephemeral node" in {
-        val node = zc.node(root, "ephemeral")
+      "a ephemeral node" in {
+        val node = zc.node(root, "node")
         node.create(ephemeral = true)
+        node.parent.get must_== root
         node.exists must_== true
         node.isEphemeral must_== true
-      }
-      "a persistent-sequential node" in {
-        val node = zc.node(root, "seq-")
-        val seq = node.createSequential()
-        node.exists must_== false
-        seq.exists must_== true
-        seq.parent.get must_== root
-        seq.sequentialId.get must_== "0000000000"
-        seq.isEphemeral must_== false
-      }
-      "an ephemeral-sequential node" in {
-        val node = zc.node(root, "seq-")
-        val seq = node.createSequential(ephemeral = true)
-        node.exists must_== false
-        seq.exists must_== true
-        seq.parent.get must_== root
-        seq.sequentialId.get must_== "0000000000"
-        seq.isEphemeral must_== true
       }
       "a node with specified data" in {
         val data = "test".getBytes
         val node = zc.node(root, "node")
         node.create(data)
+        node.get.data must_== data
+      }
+    }
+    "createChild" in {
+      "a persistent node" in {
+        val node = root.createChild("node")
+        node.parent.get must_== root
+        node.exists must_== true
+        node.isEphemeral must_== false
+      }
+      "an ephemeral node" in {
+        val node = root.createChild("node", ephemeral = true)
+        node.parent.get must_== root
+        node.exists must_== true
+        node.isEphemeral must_== true
+      }
+      "a persistent-sequential node" in {
+        val node = root.createChild("seq-", sequential = true)
+        node.parent.get must_== root
+        node.exists must_== true
+        node.sequentialId.get must_== "0000000000"
+        node.isEphemeral must_== false
+      }
+      "an ephemeral-sequential node" in {
+        val node = root.createChild("seq-", sequential = true, ephemeral = true)
+        node.parent.get must_== root
+        node.exists must_== true
+        node.sequentialId.get must_== "0000000000"
+        node.isEphemeral must_== true
+      }
+      "a node with specified data" in {
+        val data = "test".getBytes
+        val node = root.createChild("node", data)
         node.get.data must_== data
       }
     }

@@ -41,12 +41,7 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
   }
 
   def node(args: String*) = {
-    val path = {
-      if (args.head.startsWith("/"))
-        args.mkString("/")
-      else
-        "/" + args.mkString("/")
-    }
+    val path = ("/" + args.mkString("/")).replaceAll("/+", "/")
     new ZooKeeperNode(this, path)
   }
 
@@ -59,9 +54,11 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
   def isAlive = zk.getState.isAlive
 }
 
-/**
- *
- */
+
+object ZooKeeperNode {
+  implicit def zookeepernode2str(x: ZooKeeperNode) = x.path
+}
+
 
 class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   private val log = Logger.getLogger(this.getClass.getName)
@@ -137,31 +134,42 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     }))
   }
 
-  def create(data: Array[Byte] = null, ephemeral: Boolean = false) {
+  /**
+   * Create a child node with the given name.
+   */
+  def createChild(name: String, data: Array[Byte] = null,
+                  ephemeral: Boolean = false, sequential: Boolean = false): ZooKeeperNode = {
     val mode = {
-      if (ephemeral)
+      if (ephemeral && sequential)
+        CreateMode.EPHEMERAL_SEQUENTIAL
+      else if (ephemeral)
         CreateMode.EPHEMERAL
+      else if (sequential)
+        CreateMode.PERSISTENT_SEQUENTIAL
       else
         CreateMode.PERSISTENT
     }
-    zk.create(path, data, Ids.OPEN_ACL_UNSAFE, mode)
+    val result = zk.create(zc.node(this, name), data, Ids.OPEN_ACL_UNSAFE, mode)
+    zc.node(result)
   }
 
-  def createSequential(data: Array[Byte] = null, ephemeral: Boolean = false): ZooKeeperNode = {
-    val mode = {
-      if (ephemeral)
-        CreateMode.EPHEMERAL_SEQUENTIAL
-      else
-        CreateMode.PERSISTENT_SEQUENTIAL
-    }
-    zc.node(zk.create(path, data, Ids.OPEN_ACL_UNSAFE, mode))
+  /**
+   * Create a node.
+   * This does not support to create a sequential node,
+   * if you want to do it, use createChild(name, data, sequential=true).
+   */
+  def create(data: Array[Byte] = null, ephemeral: Boolean = false) {
+    parent.get.createChild(name, data, ephemeral)
   }
 
+  /**
+   * Create a node recursively.
+   * This catches only NodeExistsException, does not catch any other Exception.
+   */
   def createRecursive() {
-    parent match {
-      case Some(node) if !node.isRoot => node.createRecursive()
-      case _ => {}
-    }
+    if (isRoot || exists)
+      return
+    parent.get.createRecursive()
     log.debug("create recursive; path=%s".format(path))
     try {
       create()
@@ -174,9 +182,14 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
 
   def isEphemeral = exists && stat.get.getEphemeralOwner != 0
 
+  /**
+   * Return the sequential id, if node name has the sequential suffix.
+   * You are able to obtain sorted children by 'sortedBy',
+   * e.g. 'children.sortedBy(_.sequentialId.get)'
+   */
   def sequentialId = {
     val id = name.takeRight(10)
-    if (id matches  "^\\d+$")
+    if (id matches "^\\d{10}$")
       Some(id)
     else
       None
@@ -185,15 +198,8 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   def exists = stat.isDefined
 
   def children: List[ZooKeeperNode] = {
-    val buf = new ListBuffer[ZooKeeperNode]
-    zk.getChildren(path, false) foreach { buf += zc.node(path, _) }
-    buf.toList
+    zk.getChildren(path, false).map( zc.node(this, _) ).toList
   }
-
-  /**
-   * TODO children(sort=true)
-   * 末尾でソート、全てがsequentialでなければエラー
-   */
 
   class GetDataResponse(val stat: Stat, val data: Array[Byte])
   
@@ -214,15 +220,24 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   def deleteIf(version: Int) {
     zk.delete(path, version)
   }
-  
+
+  /**
+   * Delete a node recursively.
+   * This catches only NoNodeException, does not catch any other Exception.
+   */
   def deleteRecursive() {
-    children foreach { _.deleteRecursive() }
+    children.foreach{ _.deleteRecursive() }
     log.debug("delete recursive; path=%s".format(path))
-    delete()
+    try {
+      delete()
+    } catch {
+      case e: KeeperException.NoNodeException => {}
+    }
   }
 
   /**
-   * Returns true when given a ZooKeeperNode instance and that's path is equal to this path.
+   * Return true when the given instance is a ZooKeeperNode and
+   * that's path is equal to this path.
    */
   override def equals(that: Any) = that match {
     case other: ZooKeeperNode => other.path == this.path
@@ -230,9 +245,5 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
   
   override def toString() = path
-}
-
-object ZooKeeperNode {
-  implicit def zookeepernode2str(x: ZooKeeperNode) = x.path
 }
 
