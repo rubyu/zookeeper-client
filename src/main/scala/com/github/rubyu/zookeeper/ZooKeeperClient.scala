@@ -92,7 +92,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * Set a watch on the node and return true if the set-watch operation was
+   * Set a watcher on the node and return true if the set-watch operation was
    * successful.
    *
    * If 'permanent = true' given, new watch will be set automatically on the same node
@@ -123,7 +123,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * Set a watch on the node's children and return true if the set-watch operation
+   * Set a watcher on the node's children and return true if the set-watch operation
    * was successful.
    *
    * If 'permanent = true' given, new watch will be set automatically on the same node's

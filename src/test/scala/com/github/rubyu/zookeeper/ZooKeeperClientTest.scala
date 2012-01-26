@@ -158,7 +158,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
       }
     }
 
-    "set watch on" in {
+    "set watcher on" in {
       val node = zc.node(root, "node")
       def create() = {
         node.create()
