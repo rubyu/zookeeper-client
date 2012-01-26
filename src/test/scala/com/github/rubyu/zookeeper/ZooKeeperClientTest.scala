@@ -176,11 +176,11 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
       "a non-existing node's children" in {
         "with no option" in {
           node.watchChildren() { event =>
-          } must_== false
+          } must throwA[KeeperException.NoNodeException]
         }
         "with option permanent=true" in {
           node.watchChildren(permanent = true) { event =>
-          } must_== false
+          } must throwA[KeeperException.NoNodeException]
         }
       }
 
@@ -190,7 +190,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           var count = 0
           node.watchChildren() { event =>
             count += 1
-          } must_== true
+          }
           createChild("a")
           createChild("b")
           count must_== 1
@@ -200,7 +200,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           var count = 0
           node.watchChildren(permanent = true) { event =>
             count += 1
-          } must_== true
+          }
           createChild("a")
           createChild("b")
           count must_== 2
@@ -210,17 +210,17 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
       "a non existing node" in {
         "with no option" in {
           node.watch() { event =>
-          } must_== false
+          } must throwA[KeeperException.NoNodeException]
         }
         "with option permanent=true" in {
           node.watch(permanent = true) { event =>
-          } must_== false
+          } must throwA[KeeperException.NoNodeException]
         }
         "with option allowNoNode=true" in {
           var count = 0
           node.watch(allowNoNode = true) { event =>
             count += 1
-          } must_== true
+          }
           create()
           update()
           count must_== 1
@@ -229,7 +229,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           var count = 0
           node.watch(permanent = true, allowNoNode = true) { event =>
             count += 1
-          } must_== true
+          }
           create()
           update()
           count must_== 2
@@ -242,7 +242,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           var count = 0
           node.watch() { event =>
             count += 1
-          } must_== true
+          }
           update()
           update()
           count must_== 1
@@ -252,7 +252,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           var count = 0
           node.watch(permanent = true) { event =>
             count += 1
-          } must_== true
+          }
           update()
           update()
           count must_== 2
@@ -262,7 +262,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           var count = 0
           node.watch(allowNoNode = true) { event =>
             count += 1
-          } must_== true
+          }
           update()
           update()
           count must_== 1
@@ -272,7 +272,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           var count = 0
           node.watch(permanent = true, allowNoNode = true) { event =>
             count += 1
-          } must_== true
+          }
           update()
           update()
           count must_== 2

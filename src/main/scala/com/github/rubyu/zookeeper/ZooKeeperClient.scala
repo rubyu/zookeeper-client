@@ -101,25 +101,20 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
    * If false, the watch is able to monitor only existing node.
    */
   def watch(permanent: Boolean = false, allowNoNode: Boolean = false)
-           (callback: WatchedEvent => Unit): Boolean = {
+           (callback: WatchedEvent => Unit) {
     log.debug("set watch on the node; path=%s, permanent=%s, allowNoNode=%s".format(
       path, permanent, allowNoNode))
     def watcher = {
       new CallbackWatcher({ event =>
         callback(event)
-        if (permanent) watch(permanent, allowNoNode)(callback)
+        if (permanent)
+          watch(permanent, allowNoNode)(callback)
       })
     }
-    try {
-      if (allowNoNode) {
-        zk.exists(path, watcher)
-      } else {
-        zk.getData(path, watcher, null)
-      }
-      true
-    } catch {
-      case _ => false
-    }
+    if (allowNoNode)
+      zk.exists(path, watcher)
+    else
+      zk.getData(path, watcher, null)
   }
 
   /**
@@ -129,20 +124,16 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
    * If 'permanent = true' given, new watch will be set automatically on the same node's
    * children when the watch triggered.
    */
-  def watchChildren(permanent: Boolean = false)(callback: WatchedEvent => Unit): Boolean = {
+  def watchChildren(permanent: Boolean = false)(callback: WatchedEvent => Unit) {
     log.debug("set watch on the node's children; path=%s, permanent=%s".format(path, permanent))
     def watcher = {
       new CallbackWatcher({ event =>
         callback(event)
-        if (permanent) watchChildren(permanent)(callback)
+        if (permanent)
+          watchChildren(permanent)(callback)
       })
     }
-    try {
-      zk.getChildren(path, watcher)
-      true
-    } catch {
-      case _ => false
-    }
+    zk.getChildren(path, watcher)
   }
 
   /**
