@@ -1,7 +1,7 @@
 #Simple ZooKeeper client for Scala.
 
 This library provides two important classes *ZooKeeperClient* for managing
- a ZooKeeper instance and *ZooKeeperNode* for managing a node.
+a ZooKeeper instance and *ZooKeeperNode* for managing a node.
 Almost all function implemented in *ZooKeeperNode*, because most
 ZooKeeper's functions are relating to a node.
 
@@ -17,8 +17,10 @@ and not try to recover from it. Instead libraries should return a fatal error.
 
 ##ZooKeeperNode
 When a *ZooKeeperNode* created, existence of it's node does not guaranteed.
-As the *ZooKeeperNode* is a wrapper of node's path.
-If you create a ZooKeeperNode for a path does not exist, it does not create the node automatically.
+If you create a *ZooKeeperNode* for a path,
+it would not check node's existence and would not check even correctness of it's path.
+As the *ZooKeeperNode* is just a wrapper of node's path.
+
 
 
 ##USAGE
