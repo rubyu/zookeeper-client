@@ -65,8 +65,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   lazy val isRoot = path == "/"
 
   /**
-   * Return the name.
-   * Root node has no name.
+   * Returns the name of the node. When the node is the root, returns empty string.
    */
   lazy val name = {
     if (isRoot)
@@ -76,8 +75,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * Return the parent.
-   * Root node has no parent.
+   * Returns the parent of the node. When the node is the root, returns None.
    */
   lazy val parent = {
     val names = path.split("/").drop(1)
@@ -92,13 +90,24 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * Set a watcher on the node and return true if the set-watch operation was
-   * successful.
+   * Returns a child that has the given name.
+   */
+  def child(name: String): ZooKeeperNode = {
+    zc.node(this, name)
+  }
+
+  /**
+   * Sets a watcher on the node.
    *
+   * By default, once triggered, the watch will be disappeared.
    * If 'permanent = true' given, new watch will be set automatically on the same node
    * when the watch triggered.
+   *
+   * By default, the watch monitors only existing node.
    * If 'allowNoNode = true' given, the watch will be able to monitor non existing node.
-   * If false, the watch monitors only existing node.
+   *
+   * This does not catch any exceptions.
+   * But then 'allowNoNode = true', NoNodeException will not be thrown.
    */
   def watch(permanent: Boolean = false, allowNoNode: Boolean = false)
            (callback: WatchedEvent => Unit) {
@@ -118,11 +127,13 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * Set a watcher on the node's children and return true if the set-watch operation
-   * was successful.
+   * Sets a watcher on the node's children.
    *
-   * If 'permanent = true' given, new watch will be set automatically on the same node's
-   * children when the watch triggered.
+   * By default, once triggered, the watch will be disappeared.
+   * If 'permanent = true' given, new watch will be set automatically on the same node's children
+   * when the watch triggered.
+   *
+   * This does not catch any exceptions.
    */
   def watchChildren(permanent: Boolean = false)(callback: WatchedEvent => Unit) {
     log.debug("set watch on the node's children; path=%s, permanent=%s".format(path, permanent))
@@ -137,7 +148,16 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * Create a child node with the given name and return the created node.
+   * Creates a child node with the given name and returns the created node.
+   *
+   * By default, the node will be created as a persistent node.
+   * If 'ephemeral = true' given, the node will be created as a ephemeral node.
+   *
+   * By default, the node will be created with no suffix.
+   * If 'sequential = true' given, the node will be created with sequential
+   * suffix, e.g., 'foo-0000000000'.
+   *
+   * This does not catch any exceptions.
    */
   def createChild(name: String, data: Array[Byte] = null,
                   ephemeral: Boolean = false, sequential: Boolean = false): ZooKeeperNode = {
@@ -151,22 +171,26 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
       else
         CreateMode.PERSISTENT
     }
-    val result = zk.create(zc.node(this, name), data, Ids.OPEN_ACL_UNSAFE, mode)
+    val result = zk.create(child(name), data, Ids.OPEN_ACL_UNSAFE, mode)
     zc.node(result)
   }
 
   /**
-   * Create a node.
-   * This does not support to create a sequential node,
-   * if you want to do it, use 'createChild(name, data, sequential=true)'.
+   * Creates the node.
+   *
+   * This does not support to create a node with sequential flag.
+   * If you want to do it, use 'createChild(name, data, sequential=true)'.
+   *
+   * This does not catch any exceptions.
    */
   def create(data: Array[Byte] = null, ephemeral: Boolean = false) {
     parent.get.createChild(name, data, ephemeral)
   }
 
   /**
-   * Create a node recursively.
-   * This catches only NodeExistsException, does not catch any other Exception.
+   * Creates the node recursively.
+   *
+   * This catches only NodeExistsException, does not catch any other Exceptions.
    */
   def createRecursive() {
     if (isRoot || exists)
@@ -180,14 +204,25 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     }
   }
 
+  /**
+   * Returns the Stat of node.
+   *
+   * This does not catch any exceptions.
+   */
   def stat = Option(zk.exists(path, false))
 
+  /**
+   * Returns true if the node is a ephemeral node.
+   *
+   * This does not catch any exceptions.
+   */
   def isEphemeral = exists && stat.get.getEphemeralOwner != 0
 
   /**
-   * Return the sequential id, if node name has the sequential suffix.
-   * You are able to obtain sorted children by 'sortedBy',
-   * e.g. 'children.sortedBy(_.sequentialId.get)'
+   * Returns the sequential id of the node, if the node name has the sequential suffix.
+   *
+   * You are able to obtain sorted children by 'children.sortedBy',
+   * e.g., 'children.sortedBy(_.sequentialId.get)'
    */
   lazy val sequentialId = {
     val id = name.takeRight(10)
@@ -199,12 +234,22 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
 
   def exists = stat.isDefined
 
+  /**
+   * Returns the children of the node.
+   *
+   * This does not catch any exceptions.
+   */
   def children: List[ZooKeeperNode] = {
-    zk.getChildren(path, false).map( zc.node(this, _) ).toList
+    zk.getChildren(path, false).map(child(_)).toList
   }
 
   class GetDataResponse(val stat: Stat, val data: Array[Byte])
-  
+
+  /**
+   * Returns the data and Stat of the node.
+   *
+   * This does not catch any exceptions.
+   */
   def get: GetDataResponse = {
     val stat = new Stat()
     val data = zk.getData(path, false, stat)
@@ -213,19 +258,34 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   
   def set(data: Array[Byte]) = setIf(data, -1)
 
+  /**
+   * Sets the data for the node.
+   *
+   * This will be success only when the given version is equal to the remote version.
+   *
+   * This does not catch any exceptions.
+   */
   def setIf(data: Array[Byte], version: Int) {
     zk.setData(path, data, version)
   }
   
   def delete() = deleteIf(-1)
 
+  /**
+   * Deletes the node.
+   *
+   * This will be success only when the given version is equal to the remote version.
+   *
+   * This does not catch any exceptions.
+   */
   def deleteIf(version: Int) {
     zk.delete(path, version)
   }
 
   /**
-   * Delete a node recursively.
-   * This catches only NoNodeException, does not catch any other Exception.
+   * Delete the node recursively.
+   *
+   * This catches only NoNodeException, does not catch any other Exceptions.
    */
   def deleteRecursive() {
     children.foreach{ _.deleteRecursive() }
@@ -238,7 +298,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * Return true when the given instance is a ZooKeeperNode and
+   * Returns true when the given instance is a ZooKeeperNode and
    * that's path is equal to this path.
    */
   override def equals(that: Any) = that match {
