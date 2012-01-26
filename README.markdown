@@ -53,18 +53,18 @@ sequential node:
      
 ###Set watcher on a Node
 
-     a.watch() { event =>
-	println("called")
-     }
-     a.set(data)
-     >> called
-     a.set(data)
-     // no output
+    a.watch() { event =>
+      println("called")
+    }
+    a.set(data)
+    >> called
+    a.set(data)
+    // no output
     
 permanent watcher:
 
     a.watch(permanent = true) { event =>
-        println("called")
+      println("called")
     }
     a.set(data)
     >> called
@@ -84,7 +84,7 @@ permanent watcher:
 permanent watcher:
 
     a.watchChildren(permanent = true) { event =>
-        println("called")
+      println("called")
     }
     val f = a.createChild("f")
     >> called
