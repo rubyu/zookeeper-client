@@ -5,7 +5,6 @@ import org.apache.zookeeper._
 import org.apache.zookeeper.data._
 import org.apache.zookeeper.ZooDefs.Ids
 import org.apache.zookeeper.Watcher.Event._
-import collection.mutable.ListBuffer
 import collection.JavaConversions._
 import java.util.concurrent.CountDownLatch
 
@@ -45,8 +44,6 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
     new ZooKeeperNode(this, path)
   }
 
-  //TODO equals を handleのgetSessionIdで判定？
-
   def handle: ZooKeeper = zk
 
   def close() = zk.close()
@@ -65,16 +62,24 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
 
   private def zk: ZooKeeper = zc.handle
 
-  def isRoot = path == "/"
+  lazy val isRoot = path == "/"
 
-  def name = {
+  /**
+   * Return the name.
+   * Root node has no name.
+   */
+  lazy val name = {
     if (isRoot)
       ""
     else
       path.split("/").last
   }
-  
-  def parent = {
+
+  /**
+   * Return the parent.
+   * Root node has no parent.
+   */
+  lazy val parent = {
     val names = path.split("/").drop(1)
     names.length match {
       case n if n == 0 => 
@@ -87,55 +92,61 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
-   * TODO test
-   * TODO ノードが存在しない場合のWatcherの設定の有無が曖昧。
-   * existsのときは、ノードがなくてもWatcherは設定され、create/delete/updateのいずれでもcallbackが返る。
-   * getDataのとき、ノードが無ければWatcherは設定されない。delete/updateでcallbackが返る。
+   * Set a watch on the node and return true if the set-watch operation was
+   * successful.
    *
-   * 無条件でWatcherを設定 watch
-   * ノードが存在すれば設定 watch
-   *
-   * TODO watch(permanent=true) {} はできる？
-   * watch(permanent=false)(callback ...)にする必要あり？
-   * できるなら
-   * watch(ifExist=true)
-   *
-   * permanentでNoNodeになった際はどういう扱い？ 例外か？
-   *  allowNoNodeで制御？
-   *
-   * TODO watch(allowNoNode=false, permanent=true) {event => }
-   *
-   * あるいは、永続をここで制御しない？
-   *
-   * TODO 設定されたか否かを返す
-   *
-   * TODO () => Unitとかも？
-   *
+   * If 'permanent = true' given, new watch will be set automatically on the same node
+   * when the watch triggered.
+   * If 'allowNoNode = true' given, the watch will be able to monitor non existing node.
+   * If false, the watch is able to monitor only existing node.
    */
-  def watch(callback: WatchedEvent => Unit, permanent: Boolean = false) {
-    log.debug("set watch to node; path=%s, permanent=%s".format(path, permanent))
-    zk.exists(path, new CallbackWatcher({ event =>
-      callback(event)
-      if (permanent) watch(callback, permanent)
-    }))
+  def watch(permanent: Boolean = false, allowNoNode: Boolean = false)
+           (callback: WatchedEvent => Unit): Boolean = {
+    log.debug("set watch on the node; path=%s, permanent=%s, allowNoNode=%s".format(
+      path, permanent, allowNoNode))
+    def watcher = {
+      new CallbackWatcher({ event =>
+        callback(event)
+        if (permanent) watch(permanent, allowNoNode)(callback)
+      })
+    }
+    try {
+      if (allowNoNode) {
+        zk.exists(path, watcher)
+      } else {
+        zk.getData(path, watcher, null)
+      }
+      true
+    } catch {
+      case _ => false
+    }
   }
 
   /**
-   *ノードが無ければWatcherは設定されない。ノードのdelete、子のcreate/deleteがcallbackされる。
+   * Set a watch on the node's children and return true if the set-watch operation
+   * was successful.
    *
-   * TODO test
-   * TODO 設定されたか否かを返す
+   * If 'permanent = true' given, new watch will be set automatically on the same node's
+   * children when the watch triggered.
    */
-  def watchChildren(callback: WatchedEvent => Unit, permanent: Boolean = false) {
-    log.debug("set watch to node's children; path=%s, permanent=%s".format(path, permanent))
-    zk.getChildren(path, new CallbackWatcher({ event =>
-      callback(event)
-      if (permanent) watchChildren(callback, permanent)
-    }))
+  def watchChildren(permanent: Boolean = false)(callback: WatchedEvent => Unit): Boolean = {
+    log.debug("set watch on the node's children; path=%s, permanent=%s".format(path, permanent))
+    def watcher = {
+      new CallbackWatcher({ event =>
+        callback(event)
+        if (permanent) watchChildren(permanent)(callback)
+      })
+    }
+    try {
+      zk.getChildren(path, watcher)
+      true
+    } catch {
+      case _ => false
+    }
   }
 
   /**
-   * Create a child node with the given name.
+   * Create a child node with the given name and return the created node.
    */
   def createChild(name: String, data: Array[Byte] = null,
                   ephemeral: Boolean = false, sequential: Boolean = false): ZooKeeperNode = {
@@ -156,7 +167,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   /**
    * Create a node.
    * This does not support to create a sequential node,
-   * if you want to do it, use createChild(name, data, sequential=true).
+   * if you want to do it, use 'createChild(name, data, sequential=true)'.
    */
   def create(data: Array[Byte] = null, ephemeral: Boolean = false) {
     parent.get.createChild(name, data, ephemeral)
@@ -187,7 +198,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
    * You are able to obtain sorted children by 'sortedBy',
    * e.g. 'children.sortedBy(_.sequentialId.get)'
    */
-  def sequentialId = {
+  lazy val sequentialId = {
     val id = name.takeRight(10)
     if (id matches "^\\d{10}$")
       Some(id)
