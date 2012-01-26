@@ -98,7 +98,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
    * If 'permanent = true' given, new watch will be set automatically on the same node
    * when the watch triggered.
    * If 'allowNoNode = true' given, the watch will be able to monitor non existing node.
-   * If false, the watch is able to monitor only existing node.
+   * If false, the watch monitors only existing node.
    */
   def watch(permanent: Boolean = false, allowNoNode: Boolean = false)
            (callback: WatchedEvent => Unit) {
