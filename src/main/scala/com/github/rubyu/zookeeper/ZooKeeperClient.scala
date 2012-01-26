@@ -99,12 +99,12 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   /**
    * Sets a watcher on the node.
    *
-   * By default, once triggered, the watch will be disappeared.
-   * If 'permanent = true' given, new watch will be set automatically on the same node
-   * when the watch triggered.
+   * By default, once triggered, the watcher will be disappeared.
+   * If 'permanent = true' given, new watcher will be set automatically on the same node
+   * when the watcher triggered.
    *
-   * By default, the watch monitors only existing node.
-   * If 'allowNoNode = true' given, the watch will be able to monitor non existing node.
+   * By default, the watcher monitors only existing node.
+   * If 'allowNoNode = true' given, the watcher will be able to monitor non existing node.
    *
    * This does not catch any exceptions.
    * But then 'allowNoNode = true', NoNodeException will not be thrown.
@@ -129,9 +129,9 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   /**
    * Sets a watcher on the node's children.
    *
-   * By default, once triggered, the watch will be disappeared.
-   * If 'permanent = true' given, new watch will be set automatically on the same node's children
-   * when the watch triggered.
+   * By default, once triggered, the watcher will be disappeared.
+   * If 'permanent = true' given, new watcher will be set automatically on the same node's children
+   * when the watcher triggered.
    *
    * This does not catch any exceptions.
    */
