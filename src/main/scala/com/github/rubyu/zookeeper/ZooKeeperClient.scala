@@ -22,10 +22,10 @@ class CallbackWatcher(callback: WatchedEvent => Unit) extends Watcher {
 
 class ZooKeeperClient(connectString: String, timeout: Int) {
   private val log = Logger.getLogger(this.getClass.getName)
-
   @volatile private var zk: ZooKeeper = null
-
   connect()
+
+  def this(connectString: String) = this(connectString, 5000)
   
   private def connect() {
     val latch = new CountDownLatch(1)

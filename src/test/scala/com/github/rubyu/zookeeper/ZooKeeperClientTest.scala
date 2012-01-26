@@ -8,7 +8,7 @@ import org.apache.log4j.Logger
 class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
   private val log = Logger.getLogger(this.getClass.getName)
 
-  val zc = new ZooKeeperClient("192.168.0.100", 1000)
+  val zc = new ZooKeeperClient("192.168.0.100")
   val root = zc.node("zookeeper-client-test")
   val root_foo = zc.node(root, "foo")
   val root_foo_bar = zc.node(root, "foo", "bar")
@@ -16,7 +16,6 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
   def before {
     log.info("--test--")
     root.createRecursive()
-
   }
 
   def after {
@@ -173,6 +172,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
         node.createChild(name)
         Thread.sleep(10)
       }
+
       "a non-existing node's children" in {
         "with no option" in {
           node.watchChildren() { event =>
@@ -183,6 +183,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
           } must_== false
         }
       }
+
       "an existing node's children" in {
         "with no option" in {
           node.create()
