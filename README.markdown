@@ -7,7 +7,7 @@ ZooKeeper's functions are relating to the node.
 
 
 ##ZooKeeperClient
-The *ZooKeeperClient* **does not treat** the ZooKeeper's session expire,
+The *ZooKeeperClient* **does not treat** expiration of the ZooKeeper's session,
 and so you should manage it in your code. See below:
 
 > Library writers should be conscious of the severity of the expired state
@@ -16,7 +16,7 @@ and not try to recover from it. Instead libraries should return a fatal error.
 
 
 ##ZooKeeperNode
-When a *ZooKeeperNode* created, existence of it's node does not guaranteed.
+When a *ZooKeeperNode* created, existence of it's node not guaranteed.
 If you create a *ZooKeeperNode* for a path,
 it would not check node's existence and would not check even correctness of it's path.
 As the *ZooKeeperNode* is just a wrapper of path string.
@@ -29,47 +29,47 @@ As the *ZooKeeperNode* is just a wrapper of path string.
     val zc = new ZooKeeperClient("localhost")
     
 ###Get the Wrapper for a Node
-    val root = zc.node("zookeeper-client-test-root")
-    root.path
-    >> /zookeeper-client-test-root
+    val test = zc.node("zookeeper-client-test")
+    test.path
+    >> /zookeeper-client-test
     
-    val a = root.child("a")
+    val a = test.child("a")
     a.path
-    >> /zookeeper-client-test-root/a
+    >> /zookeeper-client-test/a
     
-    root.exists
+    test.exists
     >> false
     a.exists
     >> false
 
 ###Create a Node
 
-    root.create()
+    test.create()
     a.create()
     
-    root.exists
+    test.exists
     >> true
     a.exists
     >> true
     
 ephemeral node:
 
-    val b = root.child("b")
+    val b = test.child("b")
     b.create(ephemeral = true)
     b.isEphemeral
     >> true
     
 sequential node:
 
-    val c = root.createChild("c-", sequential = true)
+    val c = test.createChild("c-", sequential = true)
     c.path
-    >> /zookeeper-client-test-root/c-0000000000
+    >> /zookeeper-client-test/c-0000000000
     c.sequentialId.get
     >> 0000000000
      
 ###Get/Set the data for a Node
 
-    val data = "test".getBytes
+    val data = "hoge".getBytes
     a.set(data)
     a.get() == data
     >> true
@@ -126,13 +126,13 @@ permanent watcher:
 
     val j = zc.node(d, "h", "i", "j")
     j.path
-    >> /zookeeper-client-test-root/a/d/h/i/j
+    >> /zookeeper-client-test/a/d/h/i/j
     j.createRecursive()
     j.exists
     >> true
 
-    root.deleteRecursive()
-    root.exists
+    test.deleteRecursive()
+    test.exists
     >> false
     
     
