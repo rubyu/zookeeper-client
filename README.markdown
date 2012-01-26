@@ -1,9 +1,30 @@
 #Simple ZooKeeper client for Scala.
 
+This library provides two important classes *ZooKeeperClient* for managing
+ a ZooKeeper instance and *ZooKeeperNode* for managing a node.
+Almost all function implemented in *ZooKeeperNode*, because most
+ZooKeeper's functions are relating to a node.
+
+
+##ZooKeeperClient
+The *ZooKeeperClient* **does not treat** the ZooKeeper's session expire,
+you should manage it in your code. See below:
+
+> Library writers should be conscious of the severity of the expired state
+and not try to recover from it. Instead libraries should return a fatal error.
+[ZooKeeper/FAQ - Hadoop Wiki](http://wiki.apache.org/hadoop/ZooKeeper/FAQ "ZooKeeper/FAQ - Hadoop Wiki")
+
+
+##ZooKeeperNode
+When a *ZooKeeperNode* created, existence of it's node does not guaranteed.
+As the *ZooKeeperNode* is a wrapper of node's path.
+If you create a ZooKeeperNode for a path does not exist, it does not create the node automatically.
+
+
 ##USAGE
 ###Setup
 
-    val zc = new ZooKeeperClient("192.168.0.100")
+    val zc = new ZooKeeperClient("localhost")
     
 ###Get the Wrapper for a Node
     val root = zc.node("zookeeper-client-test-root")
@@ -71,7 +92,7 @@ permanent watcher:
      a.set(data)
     >> called
 
-###Set watcher on the Node's children
+###Set watcher on a Node's children
 
     a.watchChildren() { event =>
       println("called")
@@ -91,7 +112,7 @@ permanent watcher:
     val g = a.createChild("g")
     >> called
 
-###Get the Node's children
+###Get a Node's children
 
     a.children foreach { println(_.name) }
     >> d
@@ -102,6 +123,8 @@ permanent watcher:
 ###Create/Delete a Node-Tree
 
     val j = zc.node(d, "h", "i", "j")
+    j.path
+    >> /zookeeper-client-test-root/a/d/h/i/j
     j.createRecursive()
     j.exists
     >> true
