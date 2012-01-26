@@ -9,18 +9,19 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
   private val log = Logger.getLogger(this.getClass.getName)
 
   val zc = new ZooKeeperClient("192.168.0.100")
-  val root = zc.node("zookeeper-client-test")
-  val root_foo = zc.node(root, "foo")
-  val root_foo_bar = zc.node(root, "foo", "bar")
+  val root = zc.node("/")
+  val test = root.child("zookeeper-client-test")
+  val test_foo = test.child("foo")
+  val test_foo_bar = test_foo.child("bar")
 
   def before {
     log.info("--test--")
-    root.createRecursive()
+    test.createRecursive()
   }
 
   def after {
-    if (root.exists)
-      root.deleteRecursive()
+    if (test.exists)
+      test.deleteRecursive()
     log.info("--------")
   }
 
@@ -28,27 +29,27 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
 
     "create" in {
       "a node recursively" in {
-        root_foo.exists must_== false
-        root_foo_bar.createRecursive()
-        root_foo_bar.exists must_== true
+        test_foo.exists must_== false
+        test_foo_bar.createRecursive()
+        test_foo_bar.exists must_== true
       }
       "a persistent node" in {
-        val node = zc.node(root, "node")
+        val node = test.child("node")
         node.create()
-        node.parent.get must_== root
+        node.parent.get must_== test
         node.exists must_== true
         node.isEphemeral must_== false
       }
       "a ephemeral node" in {
-        val node = zc.node(root, "node")
+        val node = test.child("node")
         node.create(ephemeral = true)
-        node.parent.get must_== root
+        node.parent.get must_== test
         node.exists must_== true
         node.isEphemeral must_== true
       }
       "a node with specified data" in {
         val data = "test".getBytes
-        val node = zc.node(root, "node")
+        val node = test.child("node")
         node.create(data)
         node.get.data must_== data
       }
@@ -56,47 +57,47 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
 
     "createChild" in {
       "a persistent node" in {
-        val node = root.createChild("node")
-        node.parent.get must_== root
+        val node = test.createChild("node")
+        node.parent.get must_== test
         node.exists must_== true
         node.isEphemeral must_== false
       }
       "an ephemeral node" in {
-        val node = root.createChild("node", ephemeral = true)
-        node.parent.get must_== root
+        val node = test.createChild("node", ephemeral = true)
+        node.parent.get must_== test
         node.exists must_== true
         node.isEphemeral must_== true
       }
       "a persistent-sequential node" in {
-        val node = root.createChild("seq-", sequential = true)
-        node.parent.get must_== root
+        val node = test.createChild("seq-", sequential = true)
+        node.parent.get must_== test
         node.exists must_== true
         node.sequentialId.get must_== "0000000000"
         node.isEphemeral must_== false
       }
       "an ephemeral-sequential node" in {
-        val node = root.createChild("seq-", sequential = true, ephemeral = true)
-        node.parent.get must_== root
+        val node = test.createChild("seq-", sequential = true, ephemeral = true)
+        node.parent.get must_== test
         node.exists must_== true
         node.sequentialId.get must_== "0000000000"
         node.isEphemeral must_== true
       }
       "a node with specified data" in {
         val data = "test".getBytes
-        val node = root.createChild("node", data)
+        val node = test.createChild("node", data)
         node.get.data must_== data
       }
     }
 
     "delete" in {
       "a node recursively" in {
-        root_foo_bar.createRecursive()
-        root_foo_bar.exists must_== true
-        root.deleteRecursive()
-        root.exists must_== false
+        test_foo_bar.createRecursive()
+        test_foo_bar.exists must_== true
+        test.deleteRecursive()
+        test.exists must_== false
       }
       "a node if given version is equal to it's version" in {
-        val node = zc.node(root, "node")
+        val node = test.child("node")
         node.create()
         node.deleteIf(version=1) must throwA[KeeperException.BadVersionException]
         node.deleteIf(version=0)
@@ -106,51 +107,51 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
 
     "return the sequentialId" in {
       "when node has sequential suffix" in {
-        zc.node(root, "seq-0000000000").sequentialId.get must_== "0000000000"
+        test.child("seq-0000000000").sequentialId.get must_== "0000000000"
       }
       "throw exception when node does not have sequential suffix" in {
-        zc.node(root, "node").sequentialId.get must throwA[NoSuchElementException]
+        test.child("node").sequentialId.get must throwA[NoSuchElementException]
       }
     }
 
     "return the children" in {
-      val a = zc.node(root, "a")
-      val b = zc.node(root, "b")
+      val a = test.child("a")
+      val b = test.child("b")
       a.create()
       b.create()
-      root.children.toSet must_== Set(a, b)
+      test.children.toSet must_== Set(a, b)
     }
 
     "return the name" in {
-      root.name must_== "zookeeper-client-test"
-      root_foo.name must_== "foo"
-      root_foo_bar.name must_== "bar"
-      zc.node("/").name must_== ""
+      root.name must_== ""
+      test.name must_== "zookeeper-client-test"
+      test_foo.name must_== "foo"
+      test_foo_bar.name must_== "bar"
     }
 
     "return the parent, the parent ..." in {
-      var node = root_foo_bar
+      var node = test_foo_bar
       def goUpper() = node = node.parent.get
       goUpper()
-      node must_== root_foo
+      node must_== test_foo
+      goUpper()
+      node must_== test
       goUpper()
       node must_== root
-      goUpper()
-      node must_== zc.node("/")
       goUpper() must throwA[NoSuchElementException]
     }
 
     "set and get the data for" in {
       "a node" in {
         val data = "test".getBytes
-        val node = zc.node(root, "node")
+        val node = test.child("node")
         node.create()
         node.set(data)
         node.get.data must_== data
       }
       "a node if given version is equal to it's version" in {
         val data = "test".getBytes
-        val node = zc.node(root, "node")
+        val node = test.child("node")
         node.create()
         node.setIf(data, version=1) must throwA[KeeperException.BadVersionException]
         node.setIf(data, version=0)
@@ -159,7 +160,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
     }
 
     "set watcher on" in {
-      val node = zc.node(root, "node")
+      val node = test.child("node")
       def create() = {
         node.create()
         Thread.sleep(10)

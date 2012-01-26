@@ -33,7 +33,7 @@ As the *ZooKeeperNode* is just a wrapper of path string.
     root.path
     >> /zookeeper-client-test-root
     
-    val a = zc.node(root, "a")
+    val a = root.child("a")
     a.path
     >> /zookeeper-client-test-root/a
     
@@ -54,7 +54,7 @@ As the *ZooKeeperNode* is just a wrapper of path string.
     
 ephemeral node:
 
-    val b = zc.node(root, "b")
+    val b = root.child("b")
     b.create(ephemeral = true)
     b.isEphemeral
     >> true
