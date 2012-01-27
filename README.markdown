@@ -1,12 +1,20 @@
 #Simple ZooKeeper client for Scala.
 
-This library provides two important classes *ZooKeeperClient* for managing
-a ZooKeeper instance and *ZooKeeperNode* for managing a node in ZooKeeper.
+This library provides two important classes *ZooKeeperClient* and *ZooKeeperNode*.
+
+*ZooKeeperClient* is a management class of ZooKeeper. When the user requests
+the *ZooKeeperNode* for a path, *ZooKeeperClient* creates a instance of *ZooKeeperNode*
+that has the reference to the *ZooKeeperClient*.
+
+*ZooKeeperNode* is a management class of the node in ZooKeeper.
+When a *ZooKeeperNode* is created, existence of it's node is not guaranteed.
+If you create a *ZooKeeperNode* for a path,
+it would not check the node's existence and would not check even correctness of it's path.
+As the *ZooKeeperNode* is just a wrapper of a path string.
 Almost all function implemented in *ZooKeeperNode*, because most
 ZooKeeper's functions are relating to the node.
 
-
-##ZooKeeperClient
+##Notice
 The *ZooKeeperClient* **does not treat** expiration of the ZooKeeper's session,
 and so you should manage it in your code. See below:
 
@@ -14,21 +22,8 @@ and so you should manage it in your code. See below:
 and not try to recover from it. Instead libraries should return a fatal error.
 [ZooKeeper/FAQ - Hadoop Wiki](http://wiki.apache.org/hadoop/ZooKeeper/FAQ "ZooKeeper/FAQ - Hadoop Wiki")
 
-
-##ZooKeeperNode
-When a *ZooKeeperNode* created, existence of it's node not guaranteed.
-If you create a *ZooKeeperNode* for a path,
-it would not check node's existence and would not check even correctness of it's path.
-As the *ZooKeeperNode* is just a wrapper of path string.
-
-
-##Please teach me English!
-
-I'm writing comments, README and others, as part of the English lesson.
-Please laugh and point out my mistakes!
-
-
 ##USAGE
+
 ###Setup
 
     val zc = new ZooKeeperClient("localhost")
@@ -141,6 +136,7 @@ permanent watcher:
     >> false
 
 
+##Please teach me English!
 
-
-    
+I'm writing comments, README and others, as part of the English lesson.
+Please laugh at my mistakes and point out it!
