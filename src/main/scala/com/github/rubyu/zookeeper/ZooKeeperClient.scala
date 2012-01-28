@@ -127,6 +127,13 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   }
 
   /**
+   * This makes 'watch {}' available.
+   */
+  def watch(callback: WatchedEvent => Unit) {
+    watch()(callback)
+  }
+
+  /**
    * Sets a watcher on the node's children.
    *
    * By default, once triggered, the watcher will be disappeared.
@@ -145,6 +152,13 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
       })
     }
     zk.getChildren(path, watcher)
+  }
+
+  /**
+   * This makes 'watchChildren {}' available.
+   */
+  def watchChildren(callback: WatchedEvent => Unit) {
+    watchChildren()(callback)
   }
 
   /**

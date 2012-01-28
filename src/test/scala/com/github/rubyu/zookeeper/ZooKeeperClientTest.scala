@@ -176,7 +176,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
 
       "a non-existing node's children" in {
         "with no option" in {
-          node.watchChildren() { event =>
+          node.watchChildren { event =>
           } must throwA[KeeperException.NoNodeException]
         }
         "with option permanent=true" in {
@@ -189,7 +189,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
         "with no option" in {
           node.create()
           var count = 0
-          node.watchChildren() { event =>
+          node.watchChildren { event =>
             count += 1
           }
           createChild("a")
@@ -210,7 +210,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
 
       "a non existing node" in {
         "with no option" in {
-          node.watch() { event =>
+          node.watch { event =>
           } must throwA[KeeperException.NoNodeException]
         }
         "with option permanent=true" in {
@@ -241,7 +241,7 @@ class ZooKeeperNodeTest extends Specification with BeforeAfterExample {
         "with no option" in {
           node.create()
           var count = 0
-          node.watch() { event =>
+          node.watch { event =>
             count += 1
           }
           update()
