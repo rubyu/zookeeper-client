@@ -29,6 +29,7 @@ and not try to recover from it. Instead libraries should return a fatal error.
     val zc = new ZooKeeperClient("localhost")
     
 ###Get the Wrapper for a Node
+
     val test = zc.node("zookeeper-client-test")
     test.path
     >> /zookeeper-client-test
@@ -125,6 +126,7 @@ option permanent:
     >> called
 
 option allowNoNode:
+
     a.delete()
     a.exists
     >> false
