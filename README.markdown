@@ -15,7 +15,7 @@ Almost all function implemented in *ZooKeeperNode*, because most
 ZooKeeper's functions are relating to the node.
 
 ###Notice
-*ZooKeeperClient* **does not treat** expiration of the ZooKeeper's session,
+*ZooKeeperClient* **does not treat** the expiration of the ZooKeeper's session,
 and so you should manage it in your code. See below:
 
 > Library writers should be conscious of the severity of the expired state
