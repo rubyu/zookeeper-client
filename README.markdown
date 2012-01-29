@@ -4,7 +4,7 @@ This library provides two important classes *ZooKeeperClient* and *ZooKeeperNode
 
 *ZooKeeperClient* is a management class of ZooKeeper. When the user requests
 the *ZooKeeperNode*, *ZooKeeperClient* creates a instance of *ZooKeeperNode*
-that has the reference to the *ZooKeeperClient*.
+that has been given the reference to the *ZooKeeperClient*.
 
 *ZooKeeperNode* is a management class of the node in ZooKeeper.
 When a *ZooKeeperNode* is created, existence of it's node is not guaranteed.
@@ -14,7 +14,7 @@ As the *ZooKeeperNode* is just a wrapper of a path string.
 Almost all function implemented in *ZooKeeperNode*, because most
 ZooKeeper's functions are relating to the node.
 
-##Notice
+###Notice
 *ZooKeeperClient* **does not treat** expiration of the ZooKeeper's session,
 and so you should manage it in your code. See below:
 
