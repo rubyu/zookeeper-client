@@ -270,12 +270,12 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     new GetDataResponse(stat, data)
   }
   
-  def set(data: Array[Byte]) = setIf(data, -1)
+  def set(data: Array[Byte]) = setIf(data, version = -1)
 
   /**
    * Sets the data for the node.
    *
-   * This will be success only when the given version is equal to the remote version.
+   * This will be successful only when the given version is equal to the remote version.
    *
    * This does not catch any exceptions.
    */
@@ -283,12 +283,12 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     zk.setData(path, data, version)
   }
   
-  def delete() = deleteIf(-1)
+  def delete() = deleteIf(version = -1)
 
   /**
    * Deletes the node.
    *
-   * This will be success only when the given version is equal to the remote version.
+   * This will be successful only when the given version is equal to the remote version.
    *
    * This does not catch any exceptions.
    */
