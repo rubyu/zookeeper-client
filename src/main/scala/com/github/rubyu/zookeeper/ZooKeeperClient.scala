@@ -111,7 +111,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
    */
   def watch(permanent: Boolean = false, allowNoNode: Boolean = false)
            (callback: WatchedEvent => Unit) {
-    log.debug("set watch on the node; path=%s, permanent=%s, allowNoNode=%s".format(
+    log.debug("set watcher on the node; path=%s, permanent=%s, allowNoNode=%s".format(
       path, permanent, allowNoNode))
     def watcher = {
       new CallbackWatcher({ event =>
@@ -143,7 +143,7 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
    * This does not catch any exceptions.
    */
   def watchChildren(permanent: Boolean = false)(callback: WatchedEvent => Unit) {
-    log.debug("set watch on the node's children; path=%s, permanent=%s".format(path, permanent))
+    log.debug("set watcher on the node's children; path=%s, permanent=%s".format(path, permanent))
     def watcher = {
       new CallbackWatcher({ event =>
         callback(event)
