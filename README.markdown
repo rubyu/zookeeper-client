@@ -71,8 +71,38 @@ sequential node:
 
     val data = "hoge".getBytes
     a.set(data)
-    a.get() == data
+    a.get.data == data
     >> true
+
+specify the version:
+
+    a.get.stat.getVersion
+    >> 1
+    a.setIf(data, version = 99)
+    >> KeeperException.BadVersionException will be raised
+
+    a.setIf(data, version = 1)
+    a.get.stat.getVersion
+    >> 2
+
+###Delete a Node
+
+    a.delete()
+    a.exists
+    >> false
+
+specify the version:
+
+    a.create()
+    a.get.stat.getVersion
+    >> 0
+
+    a.deleteIf(version = 99)
+    >> KeeperException.BadVersionException will be raised
+
+    a.deleteIf(version = 0)
+    a.exists
+    >> false
      
 ###Set watcher on a Node
 
@@ -84,7 +114,7 @@ sequential node:
     a.set(data)
     // no output
     
-permanent watcher:
+option permanent:
 
     a.watch(permanent = true) { event =>
       println("called")
@@ -93,6 +123,23 @@ permanent watcher:
     >> called
      a.set(data)
     >> called
+
+option allowNoNode:
+    a.delete()
+    a.exists
+    >> false
+
+    a.watch { event =>
+      println("called")
+    }
+    >> KeeperException.NoNodeException will be raised
+
+    a.watch(allowNoNode = true) { event =>
+      println("called")
+    }
+    a.create()
+    >> called
+
 
 ###Set watcher on a Node's children
 
@@ -104,7 +151,7 @@ permanent watcher:
     val e = a.createChild("e")
     // no output
     
-permanent watcher:
+option permanent:
 
     a.watchChildren(permanent = true) { event =>
       println("called")
