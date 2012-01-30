@@ -30,160 +30,226 @@ and not try to recover from it. Instead libraries should return a fatal error.
     
 ###Get the Wrapper for a Node
 
-    val test = zc.node("zookeeper-client-test")
-    test.path
-    >> /zookeeper-client-test
-    
-    val a = test.child("a")
-    a.path
-    >> /zookeeper-client-test/a
-    
-    test.exists
-    >> false
-    a.exists
+    val node = zc.node("path", "to", "node")
+
+    node.path
+    >> /path/to/node
+    node.exists
     >> false
 
 ###Create a Node
 
+    val test = zc.node("test")
+    test.path
+    >> /test
+
     test.create()
-    a.create()
-    
+
     test.exists
     >> true
-    a.exists
+
+with data:
+
+    val a = test.child("a")
+
+    a.create(data = "foo".getBytes)
+
+    a.exists()
     >> true
-    
+    a.get.data == "foo".getBytes
+    >> true
+
 ephemeral node:
 
     val b = test.child("b")
+
     b.create(ephemeral = true)
+
     b.isEphemeral
     >> true
     
 sequential node:
 
     val c = test.createChild("c-", sequential = true)
+
+    c.exists
+    >> true
     c.path
-    >> /zookeeper-client-test/c-0000000000
+    >> /test/c-0000000000
     c.sequentialId.get
     >> 0000000000
      
 ###Get/Set the data for a Node
 
-    val data = "hoge".getBytes
-    a.set(data)
-    a.get.data == data
+    val d = test.child("d")
+    d.create()
+    d.get.stat.getVersion
+    >> 0
+
+    d.set("foo".getByes)
+
+    d.get.stat.getVersion
+    >> 1
+    d.get.data == "foo".getBytes
     >> true
 
 specify the version:
 
-    a.get.stat.getVersion
-    >> 1
-    a.setIf(data, version = 99)
+    val e = test.child("e")
+    e.create()
+    e.get.stat.getVersion
+    >> 0
+
+    e.setIf("foo".getBytes, version = 99)
     >> KeeperException.BadVersionException will be raised
 
-    a.setIf(data, version = 1)
-    a.get.stat.getVersion
-    >> 2
+    e.setIf("foo".getBytes, version = 0)
+
+    e.get.stat.getVersion
+    >> 1
+    e.get.data == "foo".getBytes
+    >> true
 
 ###Delete a Node
 
-    a.delete()
-    a.exists
+    val f = test.child("f")
+    f.create()
+    f.exists
+    >> true
+
+    f.delete()
+
+    f.exists
     >> false
 
 specify the version:
 
-    a.create()
-    a.get.stat.getVersion
+    val g = test.child("g")
+    g.create()
+    g.exists
+    >> true
+    g.get.stat.getVersion
     >> 0
 
-    a.deleteIf(version = 99)
+    g.deleteIf(version = 99)
     >> KeeperException.BadVersionException will be raised
 
-    a.deleteIf(version = 0)
-    a.exists
+    g.deleteIf(version = 0)
+
+    g.exists
     >> false
      
 ###Set watcher on a Node
 
-    a.watch { event =>
+    val h = test.child("h")
+    h.create()
+
+    h.watch { event =>
       println("called")
     }
-    a.set(data)
+
+    h.set("foo".getBytes)
     >> called
-    a.set(data)
+    h.set("bar".getBytes)
     // no output
     
 option permanent:
 
-    a.watch(permanent = true) { event =>
+    val i = test.child("i")
+    i.create()
+
+    i.watch(permanent = true) { event =>
       println("called")
     }
-    a.set(data)
+
+    i.set("foo".getBytes)
     >> called
-     a.set(data)
+    i.set("bar".getBytes)
     >> called
 
 option allowNoNode:
 
-    a.delete()
-    a.exists
-    >> false
+    val j = test.child("j")
+    //do not create
 
-    a.watch { event =>
+    j.watch { event =>
       println("called")
     }
     >> KeeperException.NoNodeException will be raised
 
-    a.watch(allowNoNode = true) { event =>
+    j.watch(allowNoNode = true) { event =>
       println("called")
     }
-    a.create()
-    >> called
 
+    j.create()
+    >> called
 
 ###Set watcher on a Node's children
 
-    a.watchChildren { event =>
+    val k = test.child("k")
+    k.create()
+
+    k.watchChildren { event =>
       println("called")
     }
-    val d = a.createChild("d")
+
+    k.createChild("l")
     >> called
-    val e = a.createChild("e")
+    k.createChild("m")
     // no output
     
 option permanent:
 
-    a.watchChildren(permanent = true) { event =>
+    val n = test.child("n")
+    n.create()
+
+    n.watchChildren(permanent = true) { event =>
       println("called")
     }
-    val f = a.createChild("f")
+
+    l.createChild("o")
     >> called
-    val g = a.createChild("g")
+    l.createChild("p")
     >> called
 
 ###Get a Node's children
 
-    a.children foreach { println(_.name) }
-    >> d
-    >> e
-    >> f
-    >> g
+    val q = test.child("q")
+    q.createChild("r")
+    q.createChild("s")
+    q.createChild("t")
 
-###Create/Delete a Node-Tree
+    m.children foreach { println(_.name) }
+    >> r
+    >> s
+    >> t
 
-    val j = zc.node(d, "h", "i", "j")
-    j.path
-    >> /zookeeper-client-test/a/d/h/i/j
-    j.createRecursive()
-    j.exists
-    >> true
+###Create a Node-Tree
 
-    test.deleteRecursive()
-    test.exists
+    val u = test.child("u")
+    val v = n.child("v")
+    val w = r.child("w")
+    u.exists
     >> false
 
+    w.createRecursive()
+
+    w.exists
+    >> true
+
+###Delete a Node-Tree
+
+    val x = test.child("x")
+    val y = t.child("y")
+    val z = u.child("z")
+    z.createRecursive()
+    z.exists
+    >> true
+
+    x.deleteRecursive()
+
+    x.exists
+    >> false
 
 ##Please teach me English!
 
