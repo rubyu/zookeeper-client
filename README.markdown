@@ -1,6 +1,6 @@
 #Simple ZooKeeper client for Scala.
 
-This library provides two important classes *ZooKeeperClient* and *ZooKeeperNode*.
+This library provides two classes *ZooKeeperClient* and *ZooKeeperNode*.
 
 *ZooKeeperClient* is a management class of ZooKeeper. When the user requests
 the *ZooKeeperNode*, *ZooKeeperClient* creates a instance of *ZooKeeperNode*
@@ -9,8 +9,9 @@ that has been given the reference to the *ZooKeeperClient*.
 *ZooKeeperNode* is a management class of the node in ZooKeeper.
 When a *ZooKeeperNode* is created, existence of it's node is not guaranteed.
 If you create a *ZooKeeperNode* for a path,
-it would not check the node's existence and would not check even correctness of it's path.
-As the *ZooKeeperNode* is just a wrapper of a path string.
+it would not check existence of the node of the path and would not check even correctness of the path.
+As *ZooKeeperNode* is just a wrapper of a path string.
+
 Almost all function implemented in *ZooKeeperNode*, because most
 ZooKeeper's functions are relating to the node.
 
@@ -34,14 +35,12 @@ and not try to recover from it. Instead libraries should return a fatal error.
 
     node.path
     >> /path/to/node
-    node.exists
-    >> false
 
 ###Create a Node
 
     val test = zc.node("test")
-    test.path
-    >> /test
+    test.exists
+    >> false
 
     test.create()
 
@@ -51,10 +50,12 @@ and not try to recover from it. Instead libraries should return a fatal error.
 with data:
 
     val a = test.child("a")
+    a.exists
+    >> false
 
     a.create(data = "foo".getBytes)
 
-    a.exists()
+    a.exists
     >> true
     a.get.data == "foo".getBytes
     >> true
@@ -62,9 +63,13 @@ with data:
 ephemeral node:
 
     val b = test.child("b")
+    b.exists
+    >> false
 
     b.create(ephemeral = true)
 
+    b.exists
+    >> true
     b.isEphemeral
     >> true
     
