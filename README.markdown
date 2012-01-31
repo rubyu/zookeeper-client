@@ -2,7 +2,7 @@
 
 This library provides two classes *ZooKeeperClient* and *ZooKeeperNode*.
 
-*ZooKeeperClient* is a management class of ZooKeeper. When the user requests
+*ZooKeeperClient* is a management class of ZooKeeper. When a user requests
 the *ZooKeeperNode*, *ZooKeeperClient* creates a instance of *ZooKeeperNode*
 that has been given the reference to the *ZooKeeperClient*.
 
