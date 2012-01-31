@@ -212,9 +212,9 @@ option permanent:
       println("called")
     }
 
-    l.createChild("o")
+    n.createChild("o")
     >> called
-    l.createChild("p")
+    n.createChild("p")
     >> called
 
 ###Get a Node's children
@@ -232,8 +232,8 @@ option permanent:
 ###Create a Node-Tree
 
     val u = test.child("u")
-    val v = n.child("v")
-    val w = r.child("w")
+    val v = u.child("v")
+    val w = v.child("w")
     u.exists
     >> false
 
@@ -245,8 +245,8 @@ option permanent:
 ###Delete a Node-Tree
 
     val x = test.child("x")
-    val y = t.child("y")
-    val z = u.child("z")
+    val y = x.child("y")
+    val z = y.child("z")
     z.createRecursive()
     z.exists
     >> true
