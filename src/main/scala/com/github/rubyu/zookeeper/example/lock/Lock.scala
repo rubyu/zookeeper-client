@@ -12,7 +12,7 @@ object Lock {
 class Lock(node: ZooKeeperNode) {
 
   object lock {
-    private val log = Logger.getLogger("%s sid=%s ".format(
+    private val log = Logger.getLogger("%s sid=%s".format(
       this.getClass.getName, node.client.handle.getSessionId))
 
     private def prefix = "lock-%s-".format(node.client.handle.getSessionId)
@@ -21,8 +21,9 @@ class Lock(node: ZooKeeperNode) {
 
     /**
      * Returns true if the lock has been obtained.
-     * When returns false, to set a watcher that has been given the callback on the previous
-     * node is guaranteed.
+     * When returns false, to set a watcher on the previous node is guaranteed.
+     *
+     * By default, callback is empty.
      */
     def get(callback: => Unit = {}): Boolean = {
       do {
@@ -62,7 +63,7 @@ class Lock(node: ZooKeeperNode) {
           ignoring(classOf[KeeperException.NoNodeException]) {
             mine.delete()
           }
-        case _ =>
+        case None =>
           log.debug("lock node does not exist")
       }
     }
