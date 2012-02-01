@@ -37,11 +37,11 @@ class LockTest extends Specification with BeforeAfterExample {
   "Lock" should {
     import Lock._
     
-    "be the master" in {
+    "get the lock" in {
       user1.lock.get() must_== true
     }
 
-    "call callback when the previous lock node has been removed" in {
+    "call callback when the previous node has been removed" in {
       import java.util.concurrent.CountDownLatch
       val latch = new CountDownLatch(1)
       user1.lock.get() must_== true
