@@ -60,6 +60,8 @@ object ZooKeeperNode {
 class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
   private val log = Logger.getLogger(this.getClass.getName)
 
+  val client = zc
+
   private def zk: ZooKeeper = zc.handle
 
   lazy val isRoot = path == "/"
@@ -210,7 +212,6 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
     if (isRoot || exists)
       return
     parent.get.createRecursive()
-    log.debug("create recursive; path=%s".format(path))
     try {
       create()
     } catch {
@@ -303,7 +304,6 @@ class ZooKeeperNode(zc: ZooKeeperClient, val path: String) {
    */
   def deleteRecursive() {
     children.foreach{ _.deleteRecursive() }
-    log.debug("delete recursive; path=%s".format(path))
     try {
       delete()
     } catch {
