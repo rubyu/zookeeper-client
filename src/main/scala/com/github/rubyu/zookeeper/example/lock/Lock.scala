@@ -23,21 +23,33 @@ class Lock(node: ZooKeeperNode) {
    * Provides 'node.lock {}' that make available each client do a task
    * exclusively for a node.
    *
+   * Given call-by-name will be called after the lock was obtained, and finally
+   * the lock will always be released.
+   *
    * Usage:
    *     node.lock {
-   *       //do something
+   *       println("lock is obtained")
    *     }
+   *
+   * Notice:
+   * When the lock for a node is already obtained, the request of the lock
+   * with the same client is always allowed; these call-by-name will be done
+   * asynchronously. Hence this Lock algorithm cannot distinguish anything but
+   * the node and the client.
    */
   def lock(f: => Unit) {
     var latch = new CountDownLatch(1)
     while (
-      !get(callback = { latch.countDown() })
+      !get { latch.countDown() }
     ) {
       latch.await()
       latch = new CountDownLatch(1)
     }
-    f
-    release()
+    try {
+      f
+    } finally {
+      release()
+    }
   }
 
   /**
