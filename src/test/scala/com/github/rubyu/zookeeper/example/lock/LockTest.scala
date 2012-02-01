@@ -25,10 +25,10 @@ class LockTest extends Specification with BeforeAfterExample {
   }
 
   "ZooKeeperNode" should {
-    "not be a lock" in {
+    "be a Lock" in {
       (new Lock(user1)).lock.release() must_== ()
     }
-    "be a Lock when the IC function had been imported" in {
+    "be a Lock implicitly when the IC function had been imported" in {
       import Lock._
       user1.lock.release() must_== ()
     }
