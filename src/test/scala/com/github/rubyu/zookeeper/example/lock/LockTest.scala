@@ -4,7 +4,9 @@ import com.github.rubyu.zookeeper._
 import org.specs2.mutable.Specification
 import org.specs2.specification._
 import org.apache.log4j.Logger
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import collection.JavaConversions._
+import java.util.concurrent.{CountDownLatch, CopyOnWriteArrayList}
 
 class LockTest extends Specification with BeforeAfterExample {
   private val log = Logger.getLogger(this.getClass.getName)
@@ -23,33 +25,43 @@ class LockTest extends Specification with BeforeAfterExample {
   def after {
     log.info("--------")
   }
-
-  "ZooKeeperNode" should {
-    "be a Lock" in {
-      (new Lock(user1)).lock.release() must_== ()
-    }
-    "be a Lock implicitly when the IC function had been imported" in {
-      import Lock._
-      user1.lock.release() must_== ()
-    }
-  }
         
   "Lock" should {
     import Lock._
-    
-    "get the lock" in {
-      user1.lock.get() must_== true
-    }
+    import scala.concurrent.ops._
 
-    "call callback when the previous node has been removed" in {
-      import java.util.concurrent.CountDownLatch
-      val latch = new CountDownLatch(1)
-      user1.lock.get() must_== true
-      user2.lock.get { latch.countDown() } must_== false
-      user1.lock.release()
-      latch.await(100, TimeUnit.MILLISECONDS)
-      latch.getCount must_== 0
-      user2.lock.get() must_== true
+    "call given call-by-name exclusively" in {
+      class Count {
+        val log = new CopyOnWriteArrayList[Int]()
+        val value = new AtomicInteger()
+        private def loggedAdd(n: Int) = log.add(value.addAndGet(n))
+        def incr() = loggedAdd(1)
+        def decr() = loggedAdd(-1)
+      }
+      val count = new Count()
+
+      class Launcher(val nodes: ZooKeeperNode*) {
+        val latch = new CountDownLatch(nodes.length)
+        def launch() = {
+          nodes foreach { node =>
+            spawn {
+              node.lock {
+                count.incr()
+                log.debug("do something")
+                Thread.sleep(100)
+                count.decr()
+                latch.countDown()
+              }
+            }
+          }
+        }
+      }
+      val launcher = new Launcher(user1, user2)
+      launcher.launch()
+      launcher.latch.await()
+
+      log.debug("log => %s".format(count.log.mkString(", ")))
+      count.log.forall( _ <= 1 ) must_== true
     }
   }
 }
