@@ -21,7 +21,7 @@ class Lock(node: ZooKeeperNode) {
 
     /**
      * Returns true if the lock has been obtained.
-     * When returns false, to set a watcher on the previous node is guaranteed.
+     * When returns false, creation of a watcher on the previous node is guaranteed.
      *
      * By default, callback is empty.
      */
