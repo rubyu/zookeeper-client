@@ -1,7 +1,6 @@
 package com.github.rubyu.zookeeper.example.lock
 
 import com.github.rubyu.zookeeper.ZooKeeperNode
-import org.apache.log4j.Logger
 import org.apache.zookeeper.KeeperException
 import scala.util.control.Exception._
 import java.util.concurrent.CountDownLatch
@@ -24,7 +23,7 @@ class Lock(node: ZooKeeperNode) {
    * Provides 'node.lock {}' that makes available each client do a task
    * exclusively for a node.
    *
-   * Given call-by-name will be called after the lock was obtained, and finally
+   * Given call-by-name will be called after the lock is obtained, and finally
    * the lock will always be released.
    *
    * Usage:
@@ -33,9 +32,9 @@ class Lock(node: ZooKeeperNode) {
    *     }
    *
    * Notice:
-   * When the lock on a node is already obtained, the request for the lock
-   * with the same client is always allowed; these callbacks will be done
-   * asynchronously. Hence this Lock algorithm cannot distinguish anything but
+   * When the lock on a node is already obtained, the requests for the lock
+   * with the same client are always allowed; these callbacks will be done
+   * asynchronously. Hence this algorithm cannot distinguish anything but
    * the client.
    */
   def lock(f: => Unit) {
