@@ -11,16 +11,17 @@ object Lock {
 }
 
 class Lock(node: ZooKeeperNode) {
-  
-  private val log = Logger.getLogger("%s sid=%s".format(
-    this.getClass.getName, node.client.handle.getSessionId))
-  
   private def prefix = "lock-%s-".format(node.client.handle.getSessionId)
 
-  private def lockNodes = node.children.sortBy(_.sequentialId.get)
+  private var state: List[ZooKeeperNode] = null
+
+  private def refreshState() {
+    state = node.children.sortBy(_.sequentialId.get)
+  }
+  refreshState()
 
   /**
-   * Provides 'node.lock {}' that make available each client do a task
+   * Provides 'node.lock {}' that makes available each client do a task
    * exclusively for a node.
    *
    * Given call-by-name will be called after the lock was obtained, and finally
@@ -38,64 +39,45 @@ class Lock(node: ZooKeeperNode) {
    * the client.
    */
   def lock(f: => Unit) {
-    var latch = new CountDownLatch(1)
-    while (
-      !get { latch.countDown() }
-    ) {
-      latch.await()
-      latch = new CountDownLatch(1)
+    if (!exists) {
+      create()
+      refreshState()
+    }
+    while (!obtained) {
+      val latch = new CountDownLatch(1)
+      if ( setCallback { latch.countDown() } ) latch.await()
+      refreshState()
     }
     try {
       f
     } finally {
-      release()
+      delete()
     }
   }
 
-  /**
-   * Returns true if the lock has been obtained.
-   * When returns false, creation of a watcher on the previous node is guaranteed.
-   */
-  private def get(callback: => Unit): Boolean = {
-    do {
-      val current = lockNodes
+  private def mine = state.find(_.name.startsWith(prefix))
 
-      log.debug("lock nodes:\n%s".format(current.mkString("\n")))
+  private def exists = mine.isDefined
+  
+  private def create() = node.createChild(prefix, ephemeral = true, sequential = true)
 
-      current.find(_.name.startsWith(prefix)) match {
-        case None =>
-          log.debug("lock node does not exists; creating ...")
-          node.createChild(prefix, ephemeral = true, sequential = true)
-        case Some(mine) =>
-          log.debug("lock node exists")
-          current.indexOf(mine) match {
-            case x if x == 0 =>
-              log.debug("lock has been obtained")
-              return true
-            case x if x >= 1 =>
-              log.debug("lock has not been obtained; setting callback ...")
-              ignoring(classOf[KeeperException.NoNodeException]) {
-                current(x - 1).watch { event => callback }
-                return false
-              }
-          }
+  private def obtained = index == 0
+  
+  private def index = state.indexOf(mine.get)
+  
+  private def setCallback(callback: => Unit): Boolean = {
+    if (index > 0) {
+      ignoring(classOf[KeeperException.NoNodeException]) {
+        state(index - 1).watch { event => callback }
+        return true
       }
-    } while(true)
-    throw new RuntimeException("should not reach here")
+    }
+    return false
   }
-
-  /**
-   * Deletes the lock node if it exists.
-   */
-  private def release() {
-    lockNodes.find(_.name.startsWith(prefix)) match {
-      case Some(mine) =>
-        log.debug("lock node has been deleted")
-        ignoring(classOf[KeeperException.NoNodeException]) {
-          mine.delete()
-        }
-      case None =>
-        log.debug("lock node does not exist")
+  
+  private def delete() {
+    ignoring(classOf[KeeperException.NoNodeException]) {
+      mine.get.delete()
     }
   }
 }
