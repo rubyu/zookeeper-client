@@ -32,10 +32,10 @@ class Lock(node: ZooKeeperNode) {
    *     }
    *
    * Notice:
-   * When the lock for a node is already obtained, the request of the lock
-   * with the same client is always allowed; these call-by-name will be done
+   * When the lock on a node is already obtained, the request for the lock
+   * with the same client is always allowed; these callbacks will be done
    * asynchronously. Hence this Lock algorithm cannot distinguish anything but
-   * the node and the client.
+   * the client.
    */
   def lock(f: => Unit) {
     var latch = new CountDownLatch(1)
