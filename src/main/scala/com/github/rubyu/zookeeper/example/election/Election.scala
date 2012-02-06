@@ -23,7 +23,7 @@ class Election(node: ZooKeeperNode) {
   private def create() = node.createChild(prefix, ephemeral = true, sequential = true)
 
   /**
-   * Returns true if the client to be the leader, returns false if given call-by-name
+   * Returns true if the client to be the leader, returns false if the given call-by-name
    * has been set on the previous node.
    */
   def join(callback: => Unit): Boolean = {
@@ -36,7 +36,7 @@ class Election(node: ZooKeeperNode) {
         if (setCallback(callback)) return false
       }
     } while(true)
-    false //
+    false //suppress the type mismatch error
   }
 
   private def isLeader = order == 0
