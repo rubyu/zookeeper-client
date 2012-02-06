@@ -4,7 +4,7 @@ import com.github.rubyu.zookeeper.ZooKeeperNode
 import util.control.Exception._
 import org.apache.zookeeper.KeeperException
 
-trait LockBase {
+trait LockImpl {
   protected val target: ZooKeeperNode
   protected val prefix: String
   protected val entries: CachedChildren

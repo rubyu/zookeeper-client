@@ -2,11 +2,7 @@ package com.github.rubyu.zookeeper.example.lock
 
 import java.util.concurrent.CountDownLatch
 
-trait Lockable extends LockBase {
-
-  protected def enter() {
-    mine = Some(create())
-  }
+trait TemporaryLock extends LockImpl {
 
   /**
    * Given call-by-name will be called after the lock is obtained, and finally

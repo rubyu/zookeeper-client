@@ -2,7 +2,7 @@ package com.github.rubyu.zookeeper.example.lock
 
 import com.github.rubyu.zookeeper.ZooKeeperNode
 
-class WriteLock(protected val target: ZooKeeperNode) extends Lockable {
+class WriteLock(protected val target: ZooKeeperNode) extends TemporaryLock {
   protected val prefix = "lock-write-"
   protected val entries = new CachedChildren(
     target.children.filter(node =>
@@ -10,4 +10,8 @@ class WriteLock(protected val target: ZooKeeperNode) extends Lockable {
         node.name.startsWith("lock-write-")
     ).sortBy(_.sequentialId.get)
   )
+
+  protected def enter() {
+    mine = Some(create())
+  }
 }

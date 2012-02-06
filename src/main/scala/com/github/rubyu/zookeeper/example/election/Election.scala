@@ -1,13 +1,13 @@
 package com.github.rubyu.zookeeper.example.election
 
 import com.github.rubyu.zookeeper.ZooKeeperNode
-import com.github.rubyu.zookeeper.example.lock.{LockBase, CachedChildren}
+import com.github.rubyu.zookeeper.example.lock.{PermanentLock, CachedChildren}
 
 object Election {
   implicit def zookeepernode2election(target: ZooKeeperNode) = new Election(target)
 }
 
-class Election(protected val target: ZooKeeperNode) extends LockBase {
+class Election(protected val target: ZooKeeperNode) extends PermanentLock {
   protected val prefix = "election-%s-".format(target.client.handle.getSessionId)
   protected val entries = new CachedChildren(
     target.children.sortBy(_.sequentialId.get)
@@ -21,36 +21,15 @@ class Election(protected val target: ZooKeeperNode) extends LockBase {
         mine = Some(create())
     }
   }
+
+  enter()
   
   object election {
 
-    /**
-     * Returns true if the client to be the leader, returns false if the given call-by-name
-     * has been set on the previous node.
-     *
-     * Usage:
-     *   node.election.join {
-     *     println("sure to be elected")
-     *   }
-     */
-    def join(callback: => Unit): Boolean = {
-      do {
-        enter()
-        entries.update()
-        if (obtained)
-          return true
-        if (setCallback(callback))
-          return false
-      } while(true)
-      false //suppress the type mismatch error
-    }
+    def join(callback: => Unit) = lock(callback)
 
-    /**
-     * Deletes the node of the client.
-     *
-     * Usage:
-     *   node.election.quit()
-     */
     def quit() = leave()
   }
 }
+
+
