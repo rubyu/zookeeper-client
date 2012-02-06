@@ -13,12 +13,12 @@ class Election(protected val target: ZooKeeperNode) extends PermanentLock {
     target.children.sortBy(_.sequentialId.get)
   )
 
-  protected def enter() {
+  protected def entry = {
     entries.get.find(_.name.startsWith(prefix)) match {
       case Some(node) =>
-        mine = Some(node)
+        node
       case None =>
-        mine = Some(create())
+        create()
     }
   }
 

@@ -11,7 +11,5 @@ class ReadLock(protected val target: ZooKeeperNode) extends TemporaryLock {
     ).sortBy(_.sequentialId.get)
   )
 
-  protected def enter() {
-    mine = Some(create())
-  }
+  protected def entry = create()
 }

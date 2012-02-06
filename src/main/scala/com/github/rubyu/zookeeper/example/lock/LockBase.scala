@@ -8,13 +8,17 @@ trait LockImpl {
   protected val target: ZooKeeperNode
   protected val prefix: String
   protected val entries: CachedChildren
+  protected def entry: ZooKeeperNode
 
   protected var mine: Option[ZooKeeperNode] = None
 
   protected def create() = 
     target.createChild(prefix, ephemeral = true, sequential = true)
 
-  protected def enter(): Unit
+  protected def enter() {
+    if (mine.isEmpty)
+      mine = Some(entry)
+  }
 
   protected def leave() {
     if (mine.isDefined) {
