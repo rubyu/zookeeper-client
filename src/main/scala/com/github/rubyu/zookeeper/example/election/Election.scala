@@ -5,22 +5,25 @@ import org.apache.zookeeper.KeeperException
 import scala.util.control.Exception._
 
 object Election {
-  implicit def zookeepernode2election(node: ZooKeeperNode) = new Election(node)
+  implicit def zookeepernode2election(target: ZooKeeperNode) = new Election(target)
 }
 
-class Election(node: ZooKeeperNode) {
-  private def prefix = "election-%s-".format(node.client.handle.getSessionId)
-
+class Election(target: ZooKeeperNode) {
   private var entries: List[ZooKeeperNode] = null
+  
+  private def prefix = "election-%s-".format(target.client.handle.getSessionId)
+
   private def updateEntries() {
-    entries = node.children.sortBy(_.sequentialId.get)
+    entries = target.children.sortBy(_.sequentialId.get)
   }
 
   private def mine = entries.find(_.name.startsWith(prefix))
 
   private def joined = mine.isDefined
   
-  private def create() = node.createChild(prefix, ephemeral = true, sequential = true)
+  private def create() {
+    target.createChild(prefix, ephemeral = true, sequential = true)
+  }
 
   /**
    * Returns true if the client to be the leader, returns false if the given call-by-name
@@ -42,13 +45,22 @@ class Election(node: ZooKeeperNode) {
   private def isLeader = order == 0
 
   private def order = entries.indexOf(mine.get)
+  
+  private def prev = {
+    order match {
+      case n if n == 0 => None
+      case n if n >= 1 => Some(entries(n - 1))
+    }
+  }
 
   private def setCallback(callback: => Unit): Boolean = {
-    if (order > 0) {
-      ignoring(classOf[KeeperException.NoNodeException]) {
-        entries(order - 1).watch { event => callback }
-        return true
-      }
+    prev match {
+      case Some(node) =>
+        ignoring(classOf[KeeperException.NoNodeException]) {
+          node.watch { event => callback }
+          return true
+        }
+      case None =>
     }
     return false
   }
@@ -58,8 +70,10 @@ class Election(node: ZooKeeperNode) {
    */
   def quit() {
     updateEntries()
-    ignoring(classOf[KeeperException.NoNodeException]) {
-      mine.get.delete()
+    if (joined) {
+      ignoring(classOf[KeeperException.NoNodeException]) {
+        mine.get.delete()
+      }  
     }
   }
 }
