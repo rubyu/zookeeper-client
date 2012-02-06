@@ -28,28 +28,34 @@ class ElectionTest extends Specification with BeforeAfterExample {
     import Election._
 
     "return true if lock is obtained" in {
-      user1.join {} must_== true
+      user1.election.join() must_== true
     }
 
     "return false if lock has been obtained by other client" in {
-      user1.join {} must_== true
-      user2.join {} must_== false
+      user1.election.join() must_== true
+      user2.election.join() must_== false
     }
 
     "not call given call-by-name when to be the leader immediately" in {
       val latch = new CountDownLatch(1)
-      user1.join { latch.countDown() }
+      user1.election.join { latch.countDown() }
       latch.await(100, TimeUnit.MILLISECONDS)
       latch.getCount must_== 1
     }
 
     "call given call-by-name when the leader resigned" in {
       val latch = new CountDownLatch(1)
-      user1.join {}
-      user2.join { latch.countDown() }
-      user1.quit()
+      user1.election.join {}
+      user2.election.join { latch.countDown() }
+      user1.election.quit()
       latch.await(100, TimeUnit.MILLISECONDS)
       latch.getCount must_== 0
+    }
+
+    "quit from election with no error" in {
+      user1.election.quit() must not (throwA[Throwable])
+      user1.election.join()
+      user1.election.quit() must not (throwA[Throwable])
     }
   }
 }

@@ -1,79 +1,56 @@
 package com.github.rubyu.zookeeper.example.election
 
 import com.github.rubyu.zookeeper.ZooKeeperNode
-import org.apache.zookeeper.KeeperException
-import scala.util.control.Exception._
+import com.github.rubyu.zookeeper.example.lock.{LockBase, CachedChildren}
 
 object Election {
   implicit def zookeepernode2election(target: ZooKeeperNode) = new Election(target)
 }
 
-class Election(target: ZooKeeperNode) {
-  private var entries: List[ZooKeeperNode] = null
-  
-  private def prefix = "election-%s-".format(target.client.handle.getSessionId)
+class Election(protected val target: ZooKeeperNode) extends LockBase {
+  protected val prefix = "election-%s-".format(target.client.handle.getSessionId)
+  protected val entries = new CachedChildren(
+    target.children.sortBy(_.sequentialId.get)
+  )
 
-  private def updateEntries() {
-    entries = target.children.sortBy(_.sequentialId.get)
-  }
-
-  private def mine = entries.find(_.name.startsWith(prefix))
-
-  private def joined = mine.isDefined
-  
-  private def create() {
-    target.createChild(prefix, ephemeral = true, sequential = true)
-  }
-
-  /**
-   * Returns true if the client to be the leader, returns false if the given call-by-name
-   * has been set on the previous node.
-   */
-  def join(callback: => Unit): Boolean = {
-    do {
-      updateEntries()
-      if (!joined) {
-        create()
-      } else {
-        if (isLeader) return true
-        if (setCallback(callback)) return false
-      }
-    } while(true)
-    false //suppress the type mismatch error
-  }
-
-  private def isLeader = order == 0
-
-  private def order = entries.indexOf(mine.get)
-  
-  private def prev = {
-    order match {
-      case n if n == 0 => None
-      case n if n >= 1 => Some(entries(n - 1))
-    }
-  }
-
-  private def setCallback(callback: => Unit): Boolean = {
-    prev match {
+  protected def enter() {
+    entries.get.find(_.name.startsWith(prefix)) match {
       case Some(node) =>
-        ignoring(classOf[KeeperException.NoNodeException]) {
-          node.watch { event => callback }
-          return true
-        }
+        mine = Some(node)
       case None =>
+        mine = Some(create())
     }
-    return false
   }
+  
+  object election {
 
-  /**
-   * Deletes the node of the client.
-   */
-  def quit() {
-    updateEntries()
-    if (joined) {
-      ignoring(classOf[KeeperException.NoNodeException]) {
-        mine.get.delete()
-      }  
+    /**
+     * Returns true if the client to be the leader, returns false if the given call-by-name
+     * has been set on the previous node.
+     *
+     * Usage:
+     *   node.election.join {
+     *     println("sure to be elected")
+     *   }
+     */
+    def join(callback: => Unit): Boolean = {
+      do {
+        enter()
+        entries.update()
+        if (obtained)
+          return true
+        if (setCallback(callback))
+          return false
+      } while(true)
+      false //suppress the type mismatch error
     }
+
+    /**
+     * Deletes the node of the client.
+     *
+     * Usage:
+     *   node.election.quit()
+     */
+    def quit() = leave()
   }
 }

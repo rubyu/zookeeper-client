@@ -27,21 +27,29 @@ class Launcher(n : Int) {
     nodes foreach { node =>
       for (i <- 1 to n) {
         spawn {
-          node.read.lock {
-            readCount.incr()
-            log.debug("Doing a task %s of %s in the read lock".format(i, n))
-            Thread.sleep(100)
-            readCount.decr()
-            latch.countDown()
+          try {
+            node.read.lock {
+              readCount.incr()
+              log.debug("Doing a task %s of %s in the read lock".format(i, n))
+              Thread.sleep(100)
+              readCount.decr()
+              latch.countDown()
+            }
+          } catch {
+            case e: Throwable => log.error(e.getStackTraceString)
           }
         }
         spawn {
-          node.write.lock {
-            writeCount.incr()
-            log.debug("Doing a task %s of %s in the write lock".format(i, n))
-            Thread.sleep(100)
-            writeCount.decr()
-            latch.countDown()
+          try {
+            node.write.lock {
+              writeCount.incr()
+              log.debug("Doing a task %s of %s in the write lock".format(i, n))
+              Thread.sleep(100)
+              writeCount.decr()
+              latch.countDown()
+            }
+          } catch {
+            case e: Throwable => log.error(e.getStackTraceString)
           }
         }
       }
@@ -49,7 +57,6 @@ class Launcher(n : Int) {
     latch
   }
 }
-
 
 class WriteLockTest extends Specification with BeforeAfterExample {
   private val log = Logger.getLogger(this.getClass.getName)
@@ -70,15 +77,20 @@ class WriteLockTest extends Specification with BeforeAfterExample {
   }
 
   "WriteLock" should {
+    "call given call-by-name" in {
+      "with no error" in {
+        user2.read.lock {} must not (throwA[Throwable])
+      }
+      "exclusively" in {
+        val launcher = new Launcher(100)
+        val latch = launcher.launch(user1, user2)
+        latch.await()
 
-    "call given call-by-name exclusively" in {
-      val launcher = new Launcher(100)
-      val latch = launcher.launch(user1, user2)
-      latch.await()
-
-      log.debug("readCount log => %s".format(launcher.readCount.log.mkString(", ")))
-      log.debug("writeCount log => %s".format(launcher.writeCount.log.mkString(", ")))
-      launcher.writeCount.log.forall( _ <= 1 ) must_== true
+        log.debug("readCount log => %s".format(launcher.readCount.log.mkString(", ")))
+        log.debug("writeCount log => %s".format(launcher.writeCount.log.mkString(", ")))
+        launcher.writeCount.log.forall( _ <= 1 ) must_== true
+        launcher.readCount.log.exists(_ >= 2 ) must_== true
+      }
     }
   }
 }

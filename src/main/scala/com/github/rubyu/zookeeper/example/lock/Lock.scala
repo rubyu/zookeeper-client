@@ -6,7 +6,6 @@ object Lock {
   implicit def zookeepernode2lock(target: ZooKeeperNode) = new Lock(target)
 }
 
-
 class Lock(target: ZooKeeperNode) {
   def lock(callback: => Unit) {
     new WriteLock(target).lock(callback)
