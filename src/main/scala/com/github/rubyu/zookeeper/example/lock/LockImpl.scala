@@ -12,6 +12,9 @@ class CachedChildren(newer: => List[ZooKeeperNode]) {
   }
 }
 
+/**
+ * An implementation of the lock on ZooKeeper.
+ */
 trait LockImpl {
   protected val entries = new CachedChildren(
     target.children.filter(node =>
@@ -20,7 +23,7 @@ trait LockImpl {
   )
   
   /**
-   * The node that treated as the center of this lock implementation.
+   * The node that treated as the parent of all lock nodes.
    */
   protected val target: ZooKeeperNode
 
@@ -50,17 +53,16 @@ trait LockImpl {
   }
 
   protected def enter() {
-    if (mine.isEmpty) {
-      mine = Some(create())
-      entries.update()
-    }
+    if (mine.isDefined)
+      throw new IllegalStateException("node already exists")
+    mine = Some(create())
+    entries.update()
   }
 
   protected def leave() {
-    if (mine.isDefined) {
-      delete()
-      mine = None
-    }
+    if (mine.isEmpty)
+      throw new IllegalStateException("node does not exist")
+    delete()
   }
 
   protected def prev = {
@@ -69,20 +71,22 @@ trait LockImpl {
     else
       None
   }
-
+  
   protected def index = entries.get.indexOf(mine.get)
 
   protected def obtained = index == 0
 
   protected def setCallback(callback: => Unit): Boolean = {
-    prev match {
-      case Some(node) =>
-        ignoring(classOf[KeeperException.NoNodeException]) {
-          node.watch { event => callback }
-          return true
-        }
-      case None =>
-        throw new IllegalStateException("node does not exist")
+    if (!obtained) {
+      prev match {
+        case Some(node) =>
+          ignoring(classOf[KeeperException.NoNodeException]) {
+            node.watch { event => callback }
+            return true
+          }
+        case None =>
+          throw new IllegalStateException("node does not exist")
+      }
     }
     return false
   }

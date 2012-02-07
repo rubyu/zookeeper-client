@@ -60,9 +60,9 @@ class ElectionTest extends Specification with BeforeAfterExample {
       latch.getCount must_== 0
     }
 
-    "quit from election with no error" in {
+    "throw an error when quit before join" in {
       val a = user1.election()
-      a.quit() must not (throwA[Throwable])
+      a.quit() must throwA[IllegalStateException]
       a.join()
       a.quit() must not (throwA[Throwable])
     }
