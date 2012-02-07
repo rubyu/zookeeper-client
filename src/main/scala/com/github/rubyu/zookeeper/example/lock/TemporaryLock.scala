@@ -37,17 +37,4 @@ trait TemporaryLock extends LockImpl {
       leave()
     }
   }
-
-  protected def isMine(node: ZooKeeperNode) = {
-    mine.isDefined && node == mine.get
-  }
-
-  protected var mine: Option[ZooKeeperNode] = null
-
-  protected def enter() {
-    mine = Some(create())
-    entries.update()
-  }
-
-  protected def leave() = delete()
 }

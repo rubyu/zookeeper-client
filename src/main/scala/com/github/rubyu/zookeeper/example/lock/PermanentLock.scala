@@ -47,23 +47,4 @@ trait PermanentLock extends LockImpl {
    *
    */
   def release() = leave()
-
-  protected def isMine(node: ZooKeeperNode) = node.name.startsWith(prefix)
-
-  protected def mine = entries.get.find(isMine)
-
-  protected def enter() {
-    entries.update()
-    if (mine.isEmpty) {
-      create()
-      entries.update()
-    }
-  }
-
-  protected def leave() {
-    entries.update()
-    if (mine.isDefined) {
-      delete()
-    }
-  }
 }

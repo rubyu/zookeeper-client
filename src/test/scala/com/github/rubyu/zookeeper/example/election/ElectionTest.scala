@@ -28,34 +28,43 @@ class ElectionTest extends Specification with BeforeAfterExample {
     import Election._
 
     "return true if lock is obtained" in {
-      user1.election.join() must_== true
+      val a = user1.election()
+
+      a.join() must_== true
     }
 
     "return false if lock has been obtained by other client" in {
-      user1.election.join() must_== true
-      user2.election.join() must_== false
+      val a = user1.election()
+      val b = user2.election()
+      a.join() must_== true
+      b.join() must_== false
     }
 
     "not call given call-by-name when to be the leader immediately" in {
       val latch = new CountDownLatch(1)
-      user1.election.join { latch.countDown() }
+      val a = user1.election()
+      a.join { latch.countDown() }
       latch.await(100, TimeUnit.MILLISECONDS)
       latch.getCount must_== 1
     }
 
     "call given call-by-name when the leader resigned" in {
       val latch = new CountDownLatch(1)
-      user1.election.join {}
-      user2.election.join { latch.countDown() }
-      user1.election.quit()
+      val a = user1.election()
+      val b = user2.election()
+      
+      a.join {}
+      b.join { latch.countDown() }
+      a.quit()
       latch.await(100, TimeUnit.MILLISECONDS)
       latch.getCount must_== 0
     }
 
     "quit from election with no error" in {
-      user1.election.quit() must not (throwA[Throwable])
-      user1.election.join()
-      user1.election.quit() must not (throwA[Throwable])
+      val a = user1.election()
+      a.quit() must not (throwA[Throwable])
+      a.join()
+      a.quit() must not (throwA[Throwable])
     }
   }
 }

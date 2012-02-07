@@ -33,14 +33,12 @@ trait LockImpl {
    * Returns true if the given node is regarded as a entry in the lock algorithm.
    */
   protected def isEntry(node: ZooKeeperNode): Boolean
-  
-  protected def isMine(node: ZooKeeperNode): Boolean
 
-  protected def mine: Option[ZooKeeperNode]
+  protected def isMine(node: ZooKeeperNode) = {
+    mine.isDefined && node == mine.get
+  }
 
-  protected def enter(): Unit
-
-  protected def leave(): Unit
+  protected var mine: Option[ZooKeeperNode] = None
 
   protected def create() = 
     target.createChild(prefix, ephemeral = true, sequential = true)
@@ -48,6 +46,20 @@ trait LockImpl {
   protected def delete() {
     ignoring(classOf[KeeperException.NoNodeException]) {
       mine.get.delete()
+    }
+  }
+
+  protected def enter() {
+    if (mine.isEmpty) {
+      mine = Some(create())
+      entries.update()
+    }
+  }
+
+  protected def leave() {
+    if (mine.isDefined) {
+      delete()
+      mine = None
     }
   }
 
