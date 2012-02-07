@@ -49,6 +49,8 @@ class ZooKeeperClient(connectString: String, timeout: Int) {
   def close() = zk.close()
 
   def isAlive = zk.getState.isAlive
+
+  def sessionId = zk.getSessionId
 }
 
 
