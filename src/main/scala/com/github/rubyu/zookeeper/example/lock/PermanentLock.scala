@@ -3,9 +3,15 @@ package com.github.rubyu.zookeeper.example.lock
 /**
  * An implementation of the permanent lock.
  *
- * API
- *     lock
- *     release
+ * Usage:
+ *   val permanentLock = ...
+ *
+ *   permanentLock.lock {
+ *     //this will be executed when the previous node is deleted
+ *   }
+ *
+ *   permanentLock.release()
+ *
  */
 trait PermanentLock extends LockImpl {
 
@@ -15,11 +21,6 @@ trait PermanentLock extends LockImpl {
    *
    * Returns true if the client to be the leader, returns false if the given call-by-name
    * has been set on the previous node.
-   *
-   * Usage:
-   *   node.lock {
-   *     //this will be executed when the previous node is deleted
-   *   }
    *
    * Notice:
    * Once the lock is obtained, this will not be released until release() is called.
@@ -39,10 +40,6 @@ trait PermanentLock extends LockImpl {
 
   /**
    * Releases the lock.
-   *
-   * Usage:
-   *   node.release()
-   *
    */
   def release() = leave()
 }

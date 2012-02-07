@@ -5,22 +5,20 @@ import java.util.concurrent.CountDownLatch
 /**
  * An implementation of the temporary lock.
  *
- * API
- *     lock
+ * Usage:
+ *   val temporaryLock = ...
+ *   temporaryLock.lock {
+ *     println("lock is obtained")
+ *   }
+ *
  */
 trait TemporaryLock extends LockImpl {
 
   /**
    * Waits for the lock on the node and do the given task.
    *
-   * Given call-by-name will be called after the lock is obtained, and finally
+   * Given call-by-name will be done after the lock is obtained, and finally
    * the lock will always be released.
-   *
-   * Usage:
-   *   node.lock {
-   *     println("lock is obtained")
-   *   }
-   *
    */
   def lock(f: => Unit) {
     try {
