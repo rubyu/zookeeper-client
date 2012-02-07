@@ -7,7 +7,7 @@ object Election {
 }
 
 /**
- * The leader election example.
+ * The example of the leader election.
  *
  * Usage:
  *   val election = node.election()

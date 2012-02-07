@@ -1,9 +1,7 @@
 package com.github.rubyu.zookeeper.example.lock
 
-import com.github.rubyu.zookeeper.ZooKeeperNode
-
 /**
- * The implementation of the permanent lock.
+ * An implementation of the permanent lock.
  *
  * API
  *     lock

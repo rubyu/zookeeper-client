@@ -1,10 +1,9 @@
 package com.github.rubyu.zookeeper.example.lock
 
 import java.util.concurrent.CountDownLatch
-import com.github.rubyu.zookeeper.ZooKeeperNode
 
 /**
- * The implementation of the temporary lock.
+ * An implementation of the temporary lock.
  *
  * API
  *     lock
