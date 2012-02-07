@@ -6,6 +6,14 @@ object Lock {
   implicit def zookeepernode2lock(target: ZooKeeperNode) = new Lock(target)
 }
 
+/**
+ * The example of the lock.
+ *
+ * Usage:
+ *   node.lock {
+ *     println("the lock is obtained")
+ *   }
+ */
 class Lock(target: ZooKeeperNode) {
   def lock(callback: => Unit) {
     new WriteLock(target).lock(callback)

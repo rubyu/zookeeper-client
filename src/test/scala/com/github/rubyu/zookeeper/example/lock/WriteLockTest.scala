@@ -36,7 +36,10 @@ class Launcher(n : Int) {
               latch.countDown()
             }
           } catch {
-            case e: Throwable => log.error(e.getStackTraceString)
+            case e: Throwable =>
+              e.printStackTrace()
+              log.error(e.getMessage)
+              log.error(e.getStackTraceString)
           }
         }
         spawn {
@@ -49,7 +52,10 @@ class Launcher(n : Int) {
               latch.countDown()
             }
           } catch {
-            case e: Throwable => log.error(e.getStackTraceString)
+            case e: Throwable =>
+              e.printStackTrace()
+              log.error(e.getMessage)
+              log.error(e.getStackTraceString)
           }
         }
       }

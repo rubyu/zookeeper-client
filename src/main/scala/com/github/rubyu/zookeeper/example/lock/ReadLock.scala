@@ -1,15 +1,11 @@
 package com.github.rubyu.zookeeper.example.lock
 
 import com.github.rubyu.zookeeper.ZooKeeperNode
+import java.util.UUID
 
 class ReadLock(protected val target: ZooKeeperNode) extends TemporaryLock {
-  protected val prefix = "lock-read-"
-  protected val entries = new CachedChildren(
-    target.children.filter(node =>
-      node.name.startsWith("lock-write-") ||
-        (mine.isDefined && node == mine.get)
-    ).sortBy(_.sequentialId.get)
-  )
-
-  protected def entry = create()
+  protected val prefix = "lock-read-%s-".format(UUID.randomUUID())
+  protected def isEntry(node: ZooKeeperNode) = {
+    node.name.startsWith("lock-write-")
+  }
 }

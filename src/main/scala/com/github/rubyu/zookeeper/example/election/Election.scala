@@ -1,35 +1,30 @@
 package com.github.rubyu.zookeeper.example.election
 
 import com.github.rubyu.zookeeper.ZooKeeperNode
-import com.github.rubyu.zookeeper.example.lock.{PermanentLock, CachedChildren}
 
 object Election {
   implicit def zookeepernode2election(target: ZooKeeperNode) = new Election(target)
 }
 
-class Election(protected val target: ZooKeeperNode) extends PermanentLock {
-  protected val prefix = "election-%s-".format(target.client.handle.getSessionId)
-  protected val entries = new CachedChildren(
-    target.children.sortBy(_.sequentialId.get)
-  )
+/**
+ * The leader election example.
+ *
+ * Usage:
+ *   node.election.join {
+ *     println("sure to be elected")
+ *   }
+ *
+ *   node.election.quit()
+ */
+class Election(target: ZooKeeperNode) {
 
-  protected def entry = {
-    entries.get.find(_.name.startsWith(prefix)) match {
-      case Some(node) =>
-        node
-      case None =>
-        create()
-    }
-  }
-
-  enter()
-  
   object election {
 
-    def join(callback: => Unit) = lock(callback)
+    def join(callback: => Unit) =
+      new LeaderElection(target).lock(callback)
 
-    def quit() = leave()
+    def quit() =
+      new LeaderElection(target).release()
   }
 }
-
 
