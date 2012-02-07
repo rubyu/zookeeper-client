@@ -13,55 +13,41 @@ class CachedChildren(newer: => List[ZooKeeperNode]) {
 }
 
 trait LockImpl {
+  protected val entries = new CachedChildren(
+    target.children.filter(node =>
+      isEntry(node) || isMine(node)
+    ).sortBy(_.sequentialId.get)
+  )
+  
   /**
    * The node that treated as the center of this lock implementation.
-   * This should be implemented in the sub-class.
    */
   protected val target: ZooKeeperNode
 
   /**
    * Prefix of the lock node.
-   * This should be implemented in the sub-class.
    */
   protected val prefix: String
 
   /**
    * Returns true if the given node is regarded as a entry in the lock algorithm.
-   * This should be implemented in the sub-class.
    */
   protected def isEntry(node: ZooKeeperNode): Boolean
   
-  protected def isMine(node: ZooKeeperNode) = node.name.startsWith(prefix)
-  
-  protected lazy val entries = new CachedChildren(
-    target.children.filter(node =>
-      isEntry(node) || isMine(node)
-    ).sortBy(_.sequentialId.get)
-  )
+  protected def isMine(node: ZooKeeperNode): Boolean
 
-  protected def mine = entries.get.find(isMine)
+  protected def mine: Option[ZooKeeperNode]
+
+  protected def enter(): Unit
+
+  protected def leave(): Unit
 
   protected def create() = 
     target.createChild(prefix, ephemeral = true, sequential = true)
 
-  protected def delete() = {
+  protected def delete() {
     ignoring(classOf[KeeperException.NoNodeException]) {
       mine.get.delete()
-    }
-  }
-
-  protected def enter() {
-    entries.update()
-    if (mine.isEmpty) {
-      create()
-      entries.update()
-    }
-  }
-
-  protected def leave() {
-    entries.update()
-    if (mine.isDefined) {
-      delete()
     }
   }
 

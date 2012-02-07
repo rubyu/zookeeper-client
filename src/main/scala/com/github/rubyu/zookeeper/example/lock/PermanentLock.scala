@@ -1,5 +1,7 @@
 package com.github.rubyu.zookeeper.example.lock
 
+import com.github.rubyu.zookeeper.ZooKeeperNode
+
 /**
  * The implementation of the permanent lock.
  *
@@ -21,8 +23,6 @@ trait PermanentLock extends LockImpl {
    *     //this will be executed when the previous node is deleted
    *   }
    *
-   *   release()
-   *
    * Notice:
    * Once the lock is obtained, this will not be released until release() is called.
    *
@@ -39,5 +39,31 @@ trait PermanentLock extends LockImpl {
     false //suppress the type mismatch error
   }
 
+  /**
+   * Releases the lock.
+   *
+   * Usage:
+   *   node.release()
+   *
+   */
   def release() = leave()
+
+  protected def isMine(node: ZooKeeperNode) = node.name.startsWith(prefix)
+
+  protected def mine = entries.get.find(isMine)
+
+  protected def enter() {
+    entries.update()
+    if (mine.isEmpty) {
+      create()
+      entries.update()
+    }
+  }
+
+  protected def leave() {
+    entries.update()
+    if (mine.isDefined) {
+      delete()
+    }
+  }
 }

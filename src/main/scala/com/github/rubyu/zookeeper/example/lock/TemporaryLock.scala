@@ -1,6 +1,7 @@
 package com.github.rubyu.zookeeper.example.lock
 
 import java.util.concurrent.CountDownLatch
+import com.github.rubyu.zookeeper.ZooKeeperNode
 
 /**
  * The implementation of the temporary lock.
@@ -37,13 +38,16 @@ trait TemporaryLock extends LockImpl {
     }
   }
 
-  /**
-   * This function has the same effect as super.leave() except that the entry cache will
-   * not be refreshed.
-   */
-  override protected def leave() {
-    if (mine.isDefined) {
-      delete()
-    }
+  protected def isMine(node: ZooKeeperNode) = {
+    mine.isDefined && node == mine.get
   }
+
+  protected var mine: Option[ZooKeeperNode] = null
+
+  protected def enter() {
+    mine = Some(create())
+    entries.update()
+  }
+
+  protected def leave() = delete()
 }
